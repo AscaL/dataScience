@@ -1,0 +1,67 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+wine = read.csv("~/Desktop/dataScience/wine.csv")
+(wine = read.csv("~/Desktop/dataScience/wine.csv"))
+ggplot(data = wine) + geom_point(mapping = aes(x = AGST, y = Price))
+ggplot(data = wine) + geom_point(mapping = aes(x = HarvestRain, y = Price))
+
+
+x = lm(Price ~ HarvestRain + AGST + WinterRain + Age + FrancePop, data = wine)
+summary(x)
+```
+Let's see price vs AGST & HarvestRain
+```{r}
+ggplot(data = wine) + 
+  geom_point(mapping = aes(x = AGST, y = HarvestRain, color = Price))
+```
+### Linear Regression
+
+Searching for Price = a + b * AGST
+```{r}
+lm(Price ~ AGST, data = wine)
+```
+So the equation is -3.4178 + 0.6351 * AGST
+```{r}
+ggplot(data = wine) + geom_point(mapping = aes(x = AGST, y = Price, color = Price)) + 
+  geom_abline(intercept = -3.4178, slope = 0.6351, color = "blue")
+reg = lm(Price ~ AGST, data = wine)
+summary(reg)
+#step(x)
+```
+
+$$ SSE = \sum (\hat{y_i}, y_i)^2 $$
+$$ \frac{SSE_1}{SSE_2} <1 \implies model_1 better, >1 \implies model2 better $$
+$$ SSE_2 = \sum (\hat{y_i}, \bar{y})^2 = SST = variance $$
+$$ \frac{SSE}{SST} $$
+$$ R^2 = 1 - \frac{SSE}{SST} $$
+How well my model fits the data
+
+```{r}
+SSE = sum((reg$residuals)^2)
+SSE
+SST = sum((wine$Price - mean(wine$Price))^2)
+SST
+R2 = 1 - SSE/SST
+R2
+reg = lm(Price ~ AGST + HarvestRain, data = wine)
+summary(reg)
+```
+
+P(100 Heads) = $$2^{-100}$$
+$$ y_i = a + bx + \epsilon_i $$
+each line i draw is a random event (supposing multiple datasets of the same kind)
+how likely it is that what i see is just a chance
+if the true slope was 0 what is the prob that the points are alligned to a slope of, for example, 0.3?
+if the prob is < 5% we should be fine
+
+$$ Price = 0.6808 \cdot AGST -0.00457 * HarvestRain $$
+```{r}
+reg = lm(Price ~ HarvestRain + AGST + WinterRain + Age, data = wine)
+summary(reg)
+```
+
