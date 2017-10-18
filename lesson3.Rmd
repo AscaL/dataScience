@@ -1,0 +1,173 @@
+---
+title: "Lesson 3"
+output:
+  html_notebook: default
+  html_document: default
+---
+
+```{r}
+library(tidyverse)
+```
+
+Let's imagine our "hidden law of nature" is the linear function $f(x) = -3 + 0.5 x$.
+So, $y(x) = f(x) + \varepsilon = -3 + 0.5 x + \varepsilon$.
+We create a first dataset of ten observations.
+For simplicity we consider $x=-3,-2,\ldots,5, 6$.
+```{r}
+a <- -3.0
+b <- 0.5
+
+set.seed(1)
+X <- seq(-3, 6)
+
+data <- data.frame(X)
+data$Y <- a + b * X + rnorm(10)
+data
+?rnorm
+```
+
+Plot it.
+```{r}
+ggplot(data) +
+  geom_point(aes(X, Y)) +
+  geom_abline(intercept = a, slope = b)
+```
+
+Let's do a first regression and look at the $R^2$.
+```{r}
+reg <- lm(Y ~ X, data = data)
+summary(reg)
+```
+
+So the function representing our linear model is $f(x) = -2.95 + 0.5547 x$.
+Also, $R^2 = 0.829$.
+
+Let's now create another dataset that we use as test set.
+We will predict the values of the $Y$ using the model we have learnt on the training set.
+```{r}
+test <- data.frame(X)
+test$Y <- a + b * X + rnorm(10)
+testPred = predict(reg, newdata = test)
+testPred
+```
+
+Let's see how well our model fits the test set, by computing $R^2$ by hand.
+```{r}
+SSE <- sum((testPred - test$Y)^2)
+SST <- sum((mean(data$Y) - test$Y)^2)
+R2 = 1 - SSE/SST
+R2
+```
+We obtain $R^2 = 0.707$.
+
+## Polynomial regression
+
+Let us increase the complexity of the model, and see what happens.
+First, a polynomial model of degree 2.
+```{r}
+reg_poly <- lm(Y ~ poly(X, degree = 2, raw = TRUE), data = data)
+summary(reg_poly)
+```
+
+Our model is $f(x) = -2.76 + 0.65 x - 0.03 x^2$ and the corresponding $R^2 = 0.8459$.
+So this second model fits better the training set.
+Let's plot it just because it's nice.
+```{r}
+ggplot(data) +
+  geom_point(aes(X, Y), size = 3) +
+  geom_smooth(aes(x = X, y = Y), method = "lm", formula = y ~ poly(x, degree = 2, raw = TRUE), se = FALSE)
+```
+
+However, how well does this new model fit the test set?
+```{r}
+SSE <- sum((predict(reg_poly, newdata = test) - test$Y)^2)
+SST <- sum((mean(data$Y) - test$Y)^2)
+1 - SSE/SST
+```
+
+$R^2 = 0.632$, so it has worsened (it was $0.707$ with the linear model).
+What happened?
+By increasing the complexity of the model, we have allowed it to fit to the peculiarities of the particular training set we are using, and those peculiarities are caused by the random noise.
+In the test set those peculiarities are gone, and therefore we get a bad fit.
+Let's now increase the complexity even more.
+
+## Polynomial regression of high degree
+
+```{r}
+reg_poly <- lm(Y ~ poly(X, degree = 5, raw = TRUE), data = data)
+summary(reg_poly)
+```
+```{r}
+ggplot(data) +
+  geom_point(aes(X, Y), size = 3) +
+  geom_smooth(aes(x = X, y = Y), method = "lm", formula = y ~ poly(x, degree = 5, raw = TRUE), se = FALSE)
+```
+
+This model has $R^2 = 0.88$ on the training set. But..
+
+```{r}
+SSE <- sum((predict(reg_poly, newdata = test) - test$Y)^2)
+SST <- sum((mean(data$Y) - test$Y)^2)
+1 - SSE/SST
+```
+
+...it's only $0.57$ on the test set! Let us try with a model of degree $9$, i.e. one less than the number of observations:
+
+```{r}
+reg_poly <- lm(Y ~ poly(X, degree = 9, raw = TRUE), data = data)
+summary(reg_poly)
+```
+
+```{r}
+ggplot(data) +
+  geom_point(aes(X, Y), size = 3) +
+  geom_smooth(aes(x = X, y = Y), method = "lm", formula = y ~ poly(x, degree = 9, raw = TRUE), se = FALSE)
+```
+
+Perfect fit on the training set, with $R^2 = 1$. However on the test set...
+
+```{r}
+SSE <- sum((predict(reg_poly, newdata = test) - test$Y)^2)
+SST <- sum((mean(data$Y) - test$Y)^2)
+1 - SSE/SST
+```
+It's even negative -- so on the test set this polynomial model gives a worse fit than the one given by the baseline degree-0 model.
+
+
+### The bias-variance decomposition in action ###
+
+Let us explore the phenomenon of _overfitting_, which happens when the model has high variance.
+A model with high variance will "oscillate" a lot as a function of the training set. More precisely, given a fixed x, the corresponding prediction will vary significantly if we change the training set.
+
+Let us see this in action with a polynomial model of order 5.
+We fit it to a few different training sets, each one drawn independently according to our model y = f(x) + noise.
+Each fitted model is plotted as a separate line of a different color.
+```{r}
+set.seed(0)
+my_plot <- ggplot()
+for (i in seq(1, 4)) {
+  train_set <- data.frame(X = seq(-3,6))
+  train_set$Y <- a + b * train_set$X + rnorm(10)
+  my_plot <- my_plot +
+    geom_point(data = train_set, aes(X, Y), color = i) +
+    geom_smooth(data = train_set, aes(X, Y), method = lm, formula = y ~ poly(x, 5), se = FALSE, color = i)
+}
+my_plot
+```
+
+The values predicted for a fixed x (for instance pick $x \simeq 3$ or $x \simeq 6$) vary greatly across different models.
+
+What if we kept the model simpler, e.g. linear? We should see lower variance.
+```{r}
+set.seed(0)
+my_plot <- ggplot()
+for (i in seq(1, 4)) {
+  train_set <- data.frame(X = seq(-3,6))
+  train_set$Y <- a + b * train_set$X + rnorm(10)
+  my_plot <- my_plot +
+    geom_point(data = train_set, aes(X, Y), color = i) +
+    geom_smooth(data = train_set, aes(X, Y), method = lm, formula = y ~ x, se = FALSE, color = i)
+}
+my_plot
+```
+

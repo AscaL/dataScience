@@ -13,7 +13,7 @@ crazy = ''
 def crazySequence(n):
     global crazy
     if n == 1:
-        crazy += (str(int(n))) + " "
+        crazy += (str(int(n)))
         print(crazy)
         # crazy.append(int(n))
         # THIS IS TOTALLY RANDOMLY USELESS, WHY NOT AN ARRAY???
