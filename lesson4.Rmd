@@ -1,0 +1,62 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+wineReg = lm(Price ~ AGST + HarvestRain, data = wine)
+summary(wineReg)
+```
+
+$ \mu $ is the avg
+$ \sigma $ is the stdDev
+We can have an $AGST' = (AGST - \mu)/\sigma$
+So $a -(b\mu/\sigma) + b$
+Somehow that's what we are doing
+
+```{r}
+scale(wine)
+wine = as.data.frame(scale(wine))
+summary(wine)
+# Now everything has mean 0
+sd(wine$Price)
+# And Std Dev 1
+```
+
+
+```{r}
+reg = lm(Price ~ AGST + HarvestRain, data = wine)
+summary(reg)
+```
+We can compare better. The order of magnitude of the effect of increasing is the same.
+For each Std Dev we know how much they influence.
+
+```{r}
+reg = lm(Price ~ ., data = wine)
+summary(reg)
+```
+Why is there an NA on wine?
+$y = a_0 + a_1x_1 + a_2x_2$
+Suppose $x_1 = x_2$
+So my model is $a_0 + (a_1 + a_2)x_1$
+I can create another model that is $a_0 + a'_1x_1 +a'_2x_2$ with $a'_1 + a'_2 = a_1 + a_2$
+Linear regression is a convex optimization problem. Minimize a parabola that has one global minumim (those are $a_1, a_2$). 
+We have an error function $err(a_0, a_1, a_2)$ that is minimized by linear regression
+There is not anyomre a UNIQUE minimum because $a_1 and a_2$ are other solutions
+We can choose whatever numbers we want for the sum. This is because $x_1$ and $x_2$ are the same.
+Perfectly positive correlated: $corr(x_1, x_2) = +1/-1$
+
+```{r}
+cor(wine$Year, wine$Age)
+cor(wine)
+```
+
+Called collinearity and happens if we have the same information in the dataset.
+The quality of the model is the same. The interpretation of the coefficient becames difficult.
+
+```{r}
+reg = lm(Price ~ . - Year, data = wine)
+summary(reg)
+```
+
