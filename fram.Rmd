@@ -1,0 +1,145 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document: default
+---
+
+Load and explore the dataset.
+```{r}
+library(tidyverse)
+fram <- read.csv("framingham.csv")
+summary(fram)
+```
+
+Let's explore more.
+```{r}
+ggplot(fram) +
+  geom_boxplot(aes(x = TenYearCHD, y = age))
+ggplot(data) +
+  geom_bar(aes(x = age, fill = TenYearCHD))
+ggplot(data) +
+  geom_bar(aes(x = male, fill = TenYearCHD), position = "fill")
+```
+
+It seems that `age` could be a good predictor.
+
+Logistic regression using one predictor, `age`. First, let's split.
+```{r}
+library(caTools)
+set.seed(1)
+sp <- sample.split(fram$TenYearCHD, SplitRatio = 0.8)
+train <- subset(fram, sp == TRUE)
+test <- subset(fram, sp == FALSE)
+```
+
+Logistic regression. We use the function `glm`. Remember to pass the option `family = "binomial"`.
+```{r}
+reg <- glm(TenYearCHD ~ age, data = train, family = "binomial")
+summary(reg)
+```
+
+We can predict using `predict()`.
+Let's see what the predictions are as the age gows from 10 to 100.
+```{r}
+fake <- data.frame(age = seq(10, 100, by=10)) # only one column, age, with values 10, 20, ..., 100
+predict(reg, newdata = fake, type = "response")
+```
+
+Let's predict on the test set.
+We use the function `predict`.
+Remember to pass the option `type = "response"` to get the probabilities (otherwise you get the log-odds).
+```{r}
+test$probCHD <- predict(reg, newdata = test, type = "response") # on the test set
+```
+
+Does the distribution of predicted probabilities match our intuition?
+```{r}
+ggplot(test) +
+  geom_histogram(aes(x = probCHD, fill = TenYearCHD)) # histogram plot of the predicted probability
+```
+
+Let's converting into binary predictions.
+```{r}
+T <- 0.3
+test$predCHD <- test$probCHD >= T
+```
+
+What is the performance of the system? Let's start by computing the accuracy.
+```{r}
+count(test, TenYearCHD, predCHD)
+(acc <- (689 + 19)/848)
+# exercise: find another way to compute it 
+```
+
+Let's now see what accuracy we would have obtained if we just predicted `TenYearCHD = FALSE` for every observation without even considering the age.
+```{r}
+count(test, TenYearCHD)
+719 / 848
+```
+
+That's higher than the accuracy given by our system.
+However, we are interested in a high accuracy for the sick patients -- not just overall!
+Let's compute the accuracy of our classifier separately for healthy and sick patients.
+
+Accuracy on patients with TenYearCHD=TRUE.
+```{r}
+(sensitivity <- 19/129) # aka True Positive Rate, or Recall
+```
+Accuracy on patients with TenYearCHD=FALSE.
+```{r}
+(specificity <- 689/719) # aka (1 - False Positive Rate)
+```
+
+Alternative way:
+```{r}
+sum(test$TenYearCHD == TRUE & test$predCHD == TRUE)/sum(test$TenYearCHD == TRUE)
+```
+
+```{r}
+sum(test$TenYearCHD == FALSE & test$predCHD == FALSE)/sum(test$TenYearCHD == FALSE)
+```
+
+Let's compute sensitivity and specificity as we decrease the threshold:
+```{r}
+for (T in c(0.3, 0.25, 0.2, 0.15, 0.1)) {
+  test$predCHD <- test$probCHD >= T
+  sens <- sum(test$TenYearCHD == TRUE & test$predCHD == TRUE)/sum(test$TenYearCHD == TRUE)
+  spec <- sum(test$TenYearCHD == FALSE & test$predCHD == FALSE)/sum(test$TenYearCHD == FALSE)
+  print(paste(T, sens, spec))
+}
+```
+
+The tradeoff is unavoidable (no free lunch!).
+
+We can capture it with the ROC Curve.
+```{r}
+library(ROCR)
+rocr_pred <- prediction(test$probCHD, test$TenYearCHD)
+rocr_perf <- performance(rocr_pred, "tpr", "fpr")
+plot(rocr_perf, colorize = TRUE, lwd = 3)
+grid()
+```
+
+```{r}
+performance(rocr_pred, "auc")@y.values
+```
+
+Let's now do a regression using all predictors.
+```{r}
+reg <- glm(TenYearCHD ~ ., data = train, family = "binomial")
+summary(reg)
+```
+
+If you recompute the ROC curve, you will see it's better (and the AUC is higher).
+
+```{r}
+test$probCHD <- predict(reg, newdata = test, type = "response") # on the test set
+rocr_pred <- prediction(test$probCHD, test$TenYearCHD)
+rocr_perf <- performance(rocr_pred, "tpr", "fpr")
+plot(rocr_perf, colorize = TRUE, lwd = 3)
+grid()
+performance(rocr_pred, "auc")@y.values
+```
+

@@ -1,0 +1,89 @@
+---
+title: "Titanic Survival Prediction"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+```{r}
+train <- read.csv("train.csv")
+test <- read.csv("test.csv")
+library(tidyverse)
+str(train)
+```
+
+A pessimistic submission.
+```{r}
+pred <- data.frame(PassengerId = test$PassengerId, Survived = 0)
+head(pred)
+write.csv(pred, file = "theyalldie.csv", row.names = FALSE)
+```
+
+
+```{r}
+summary(train)
+```
+
+A first logistic regression model.
+```{r}
+lreg <- glm(Survived ~ ., data = train, family = "binomial")
+```
+The algorithm does not converge. This happens because our dataset contains discrete variables (known in R as factors), such as Name or Cabin, which are unique to each passenger.
+In the case of the factor variable Name, glm() creates a dummy binary variable for each possible value ("Mr. John Smith", "Miss. Eva Green", ...) and that variable is 1 if and only if the passenger has that name.
+Unfortunately this means the model can always correctly predict whether a passenger did survive or not, based on those variables.
+This in turn means there is no unique local minimum for the loss function and therefore the algorithm does not converge.
+Therefore we must remove from the training set those variables.
+```{r}
+# train
+library(tidyverse)
+train <- read.csv("train.csv")
+train <- select(train, -Name, -PassengerId, -Ticket, -Cabin, -Embarked)
+lreg <- glm(Survived ~ ., data = train, family = "binomial")
+# test
+test <- read.csv("test.csv")
+test$ProbSurv <- predict(lreg, newdata = test, type = "response")
+test$Survived <- as.integer(test$ProbSurv >= 0.5)
+pred <- data.frame(PassengerId = test$PassengerId, Survived = test$Survived)
+head(pred)
+write.csv(pred, "lreg.csv", row.names = FALSE)
+```
+
+Now we still have missing data in output and that causes an error on Kaggle.
+That's because there are observations with missing data in the test set.
+Let's replace them.
+```{r}
+# train
+library(tidyverse)
+train <- read.csv("train.csv")
+train <- select(train, -Name, -PassengerId, -Ticket, -Cabin, -Embarked)
+lreg <- glm(Survived ~ ., data = train, family = "binomial")
+# test
+test <- read.csv("test.csv")
+meanAge <- mean(test$Age, na.rm = TRUE) # NAs propagate through if we don't set na.rm=TRUE
+meanFare <- mean(test$Fare, na.rm = TRUE)
+test <- replace_na(test, replace = list(Age = meanAge))
+test <- replace_na(test, replace = list(Fare = meanFare))
+test$ProbSurv <- predict(lreg, newdata = test, type = "response")
+test$Survived <- as.integer(test$ProbSurv >= 0.5)
+pred <- data.frame(PassengerId = test$PassengerId, Survived = test$Survived)
+head(pred)
+write.csv(pred, "lreg.csv", row.names = FALSE)
+```
+
+Do everything with the **pipe operator** (see "R 4 Data Science").
+Here we use it for tidying the data, create new features, and plot a summary of survival rates divided by embarkment point.
+```{r}
+library(tidyverse)
+train <- read.csv("train.csv")
+train %>%
+  select(-PassengerId, -Cabin, -Name, -Ticket) %>%
+  filter(Embarked != "") %>%
+  replace_na(list(Age = mean(train$Age, na.rm = TRUE))) %>%
+  replace_na(list(Fare = mean(train$Fare, na.rm = TRUE))) %>%
+  mutate(FamilySize = SibSp + Parch) %>%
+  group_by(Embarked) %>%
+  summarise(FracSurvived = sum(Survived)/n()) %>%
+  ggplot() +
+    geom_col(aes(x = Embarked, y = FracSurvived))
+```
+

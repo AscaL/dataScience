@@ -1,0 +1,87 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+flower <- read.csv("~/dataScience/flower.csv", header = FALSE)
+str(flower)
+flowerMatrix <- as.matrix(flower)
+str(flowerMatrix)
+flowerVector <- as.vector(flowerMatrix)
+distance <- dist(flowerVector, method = "euclidian")
+clusterIntensity = hclust(distance, method = "ward.D")
+plot(as.dendrogram(clusterIntensity))
+rect.hclust(clusterIntensity, k = 3, border = "red")
+(flowerClusters = cutree(clusterIntensity, k = 3))
+# See mean of values for each cluster
+tapply(flowerVector, flowerClusters, mean)
+# Convert flowerClusters to matrix
+dim(flowerClusters) = c(50, 50)
+image(flowerClusters, axes = FALSE)
+image(flowerMatrix, axes = FALSE, col = grey(seq(0,1,length = 256)))
+```
+
+```{r}
+healthy <- read.csv("~/dataScience/healthy.csv", header = FALSE)
+healthyMatrix = as.matrix(healthy)
+str(healthyMatrix)
+image(healthyMatrix, axes = FALSE, col = grey(seq(0, 1, length = 256)))
+healthyVector = as.vector(healthyMatrix)
+# Too much to compute, use another method
+# distance = dist(healthyVector, method = "euclidean")
+```
+
+```{r}
+# Use k-means
+k = 5
+set.seed(1)
+KMC = kmeans(healthyVector, centers = k, iter.max = 1000)
+str(KMC)
+healthyCluster = KMC$cluster
+# Mean intensity of the second cluster (for example)
+KMC$centers[2]
+# convert to matrix
+dim(healthyCluster) = c(nrow(healthyMatrix), ncol(healthyMatrix))
+image(healthyCluster, axes = FALSE, col = rainbow(k))
+```
+
+```{r}
+# Within cluster sum of squares to find best cluster number
+KMC$withinss
+SumWithinss = sapply(2:10, function(x) sum(kmeans(healthyVector, centers = x, iter.max = 1000)$withinss))
+plot(SumWithinss, type = "b")
+```
+
+
+```{r}
+tumor <- read.csv("~/dataScience/tumor.csv", header = FALSE)
+tumorMatrix = as.matrix(tumor)
+tumorVector = as.vector(tumorMatrix)
+library(flexclust)
+KMC.kcca = as.kcca(KMC, healthyVector)
+tumorClusters = predict(KMC.kcca, newdata = tumorVector)
+dim(tumorClusters) = c(nrow(tumorMatrix), ncol(tumorMatrix))
+image(tumorClusters, axes = FALSE, col = rainbow(k))
+```
+
+```{r}
+#HW1 Start 
+dailykos <- read.csv("~/dataScience/dailykos.csv")
+distance <- dist(dailykos, method = "euclidean")
+cluster <- hclust(distance, method = "ward.D")
+plot(cluster)
+(Koscluster <- cutree(cluster, k = 7))
+HierCluster = split(dailykos, Koscluster)
+HierCluster[[1]]
+nrow(HierCluster[[1]])
+nrow(HierCluster[[2]])
+nrow(HierCluster[[3]])
+nrow(HierCluster[[4]])
+tail(sort(colMeans(HierCluster[[1]])))
+tail(sort(colMeans(HierCluster[[2]])))
+tail(sort(colMeans(HierCluster[[3]])))
+tail(sort(colMeans(HierCluster[[4]])))
+tail(sort(colMeans(HierCluster[[5]])))
+```
+

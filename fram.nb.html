@@ -142,7 +142,7 @@ $(document).ready(function () {
 </style>
 <script>
 $(document).ready(function () {
-  window.initializeSourceEmbed("lesson4.Rmd");
+  window.initializeSourceEmbed("fram.Rmd");
   window.initializeCodeFolding("show" === "show");
 });
 </script>
@@ -172,166 +172,197 @@ $(document).ready(function () {
 
 
 <!-- rnb-text-begin -->
+<p>Load and explore the dataset.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeSh3aW5lUmVnKVxuXG5gYGAifQ== -->
-<pre class="r"><code>summary(wineReg)
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShmcmFtKVxuXG5gYGAifQ== -->
+<pre class="r"><code>summary(fram)
 </code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IFByaWNlIH4gQUdTVCArIEhhcnZlc3RSYWluLCBkYXRhID0gd2luZSlcblxuUmVzaWR1YWxzOlxuICAgICBNaW4gICAgICAgMVEgICBNZWRpYW4gICAgICAgM1EgICAgICBNYXggXG4tMS4zNTgwNyAtMC4zMDEzOCAgMC4wOTQ5OSAgMC4yMzY0NyAgMC45MTgzMiBcblxuQ29lZmZpY2llbnRzOlxuICAgICAgICAgICAgICBFc3RpbWF0ZSBTdGQuIEVycm9yIHQgdmFsdWUgUHIoPnx0fCkgICAgXG4oSW50ZXJjZXB0KSAtMS41NTJlLTE2ICAxLjEzMGUtMDEgICAwLjAwMCAxLjAwMDAwMCAgICBcbkFHU1QgICAgICAgICA2LjI1OGUtMDEgIDEuMTU2ZS0wMSAgIDUuNDE1IDEuOTRlLTA1ICoqKlxuSGFydmVzdFJhaW4gLTUuMjMwZS0wMSAgMS4xNTZlLTAxICAtNC41MjUgMC4wMDAxNjcgKioqXG4tLS1cblNpZ25pZi4gY29kZXM6ICAwICcqKionIDAuMDAxICcqKicgMC4wMSAnKicgMC4wNSAnLicgMC4xICcgJyAxXG5cblJlc2lkdWFsIHN0YW5kYXJkIGVycm9yOiAwLjU2NSBvbiAyMiBkZWdyZWVzIG9mIGZyZWVkb21cbk11bHRpcGxlIFItc3F1YXJlZDogIDAuNzA3NCxcdEFkanVzdGVkIFItc3F1YXJlZDogIDAuNjgwOCBcbkYtc3RhdGlzdGljOiAyNi41OSBvbiAyIGFuZCAyMiBERiwgIHAtdmFsdWU6IDEuMzQ3ZS0wNlxuIn0= -->
-<pre><code>
-Call:
-lm(formula = Price ~ AGST + HarvestRain, data = wine)
-
-Residuals:
-     Min       1Q   Median       3Q      Max 
--1.35807 -0.30138  0.09499  0.23647  0.91832 
-
-Coefficients:
-              Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept) -1.552e-16  1.130e-01   0.000 1.000000    
-AGST         6.258e-01  1.156e-01   5.415 1.94e-05 ***
-HarvestRain -5.230e-01  1.156e-01  -4.525 0.000167 ***
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-Residual standard error: 0.565 on 22 degrees of freedom
-Multiple R-squared:  0.7074,    Adjusted R-squared:  0.6808 
-F-statistic: 26.59 on 2 and 22 DF,  p-value: 1.347e-06</code></pre>
+<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gc3VtbWFyeShmcmFtKSA6IG9iamVjdCAnZnJhbScgbm90IGZvdW5kXG4ifQ== -->
+<pre><code>Error in summary(fram) : object 'fram' not found</code></pre>
 <!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>$ $ is the avg $ $ is the stdDev We can have an <span class="math inline">\(AGST' = (AGST - \mu)/\sigma\)</span> So <span class="math inline">\(a -(b\mu/\sigma) + b\)</span> Somehow that’s what we are doing</p>
+<p>Let’s explore more.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBOb3cgZXZlcnl0aGluZyBoYXMgbWVhbiAwXG5zZCh3aW5lJFByaWNlKVxuXG5gYGAifQ== -->
-<pre class="r"><code># Now everything has mean 0
-sd(wine$Price)
-</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZ2dwbG90KGZyYW1pbmdoYW0pICtcbiAgZ2VvbV9ib3hwbG90KGFlcyh4ID0gVGVuWWVhckNIRCwgeSA9IGFnZSkpXG5nZ3Bsb3QoZGF0YSkgK1xuICBnZW9tX2JhcihhZXMoeCA9IGFnZSwgZmlsbCA9IFRlblllYXJDSEQpKVxuZ2dwbG90KGRhdGEpICtcbiAgZ2VvbV9iYXIoYWVzKHggPSBtYWxlLCBmaWxsID0gVGVuWWVhckNIRCksIHBvc2l0aW9uID0gXCJmaWxsXCIpXG5gYGAifQ== -->
+<pre class="r"><code>ggplot(framingham) +
+  geom_boxplot(aes(x = TenYearCHD, y = age))
+ggplot(data) +
+  geom_bar(aes(x = age, fill = TenYearCHD))
+ggplot(data) +
+  geom_bar(aes(x = male, fill = TenYearCHD), position = &quot;fill&quot;)</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDFcbiJ9 -->
-<pre><code>[1] 1</code></pre>
-<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>It seems that <code>age</code> could be a good predictor.</p>
+<p>Logistic regression using one predictor, <code>age</code>. First, let’s split.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShjYVRvb2xzKVxuc2V0LnNlZWQoMSlcbnNwIDwtIHNhbXBsZS5zcGxpdChmcmFtaW5naGFtJFRlblllYXJDSEQsIFNwbGl0UmF0aW8gPSAwLjgpXG50cmFpbiA8LSBzdWJzZXQoZnJhbWluZ2hhbSwgc3AgPT0gVFJVRSlcbnRlc3QgPC0gc3Vic2V0KGZyYW1pbmdoYW0sIHNwID09IEZBTFNFKVxuYGBgIn0= -->
+<pre class="r"><code>library(caTools)
+set.seed(1)
+sp &lt;- sample.split(framingham$TenYearCHD, SplitRatio = 0.8)
+train &lt;- subset(framingham, sp == TRUE)
+test &lt;- subset(framingham, sp == FALSE)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Logistic regression. We use the function <code>glm</code>. Remember to pass the option <code>family = &quot;binomial&quot;</code>.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucmVnIDwtIGdsbShUZW5ZZWFyQ0hEIH4gYWdlLCBkYXRhID0gdHJhaW4sIGZhbWlseSA9IFwiYmlub21pYWxcIilcbnN1bW1hcnkocmVnKVxuYGBgIn0= -->
+<pre class="r"><code>reg &lt;- glm(TenYearCHD ~ age, data = train, family = &quot;binomial&quot;)
+summary(reg)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>We can predict using <code>predict()</code>. Let’s see what the predictions are as the age gows from 10 to 100.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZmFrZSA8LSBkYXRhLmZyYW1pbmdoYW1lKGFnZSA9IHNlcSgxMCwgMTAwLCBieT0xMCkpICMgb25seSBvbmUgY29sdW1uLCBhZ2UsIHdpdGggdmFsdWVzIDEwLCAyMCwgLi4uLCAxMDBcbnByZWRpY3QocmVnLCBuZXdkYXRhID0gZmFrZSwgdHlwZSA9IFwicmVzcG9uc2VcIilcbmBgYCJ9 -->
+<pre class="r"><code>fake &lt;- data.framinghame(age = seq(10, 100, by=10)) # only one column, age, with values 10, 20, ..., 100
+predict(reg, newdata = fake, type = &quot;response&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Let’s predict on the test set. We use the function <code>predict</code>. Remember to pass the option <code>type = &quot;response&quot;</code> to get the probabilities (otherwise you get the log-odds).</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudGVzdCRwcm9iQ0hEIDwtIHByZWRpY3QocmVnLCBuZXdkYXRhID0gdGVzdCwgdHlwZSA9IFwicmVzcG9uc2VcIikgIyBvbiB0aGUgdGVzdCBzZXRcbmBgYCJ9 -->
+<pre class="r"><code>test$probCHD &lt;- predict(reg, newdata = test, type = &quot;response&quot;) # on the test set</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Does the distribution of predicted probabilities match our intuition?</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZ2dwbG90KHRlc3QpICtcbiAgZ2VvbV9oaXN0b2dyYW0oYWVzKHggPSBwcm9iQ0hELCBmaWxsID0gVGVuWWVhckNIRCkpICMgaGlzdG9ncmFtIHBsb3Qgb2YgdGhlIHByZWRpY3RlZCBwcm9iYWJpbGl0eVxuYGBgIn0= -->
+<pre class="r"><code>ggplot(test) +
+  geom_histogram(aes(x = probCHD, fill = TenYearCHD)) # histogram plot of the predicted probability</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Let’s converting into binary predictions.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuVCA8LSAwLjNcbnRlc3QkcHJlZENIRCA8LSB0ZXN0JHByb2JDSEQgPj0gVFxuYGBgIn0= -->
+<pre class="r"><code>T &lt;- 0.3
+test$predCHD &lt;- test$probCHD &gt;= T</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>What is the performance of the system? Let’s start by computing the accuracy.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuY291bnQodGVzdCwgVGVuWWVhckNIRCwgcHJlZENIRClcbihhY2MgPC0gKDY4OSArIDE5KS84NDgpXG4jIGV4ZXJjaXNlOiBmaW5kIGFub3RoZXIgd2F5IHRvIGNvbXB1dGUgaXQgXG5gYGAifQ== -->
+<pre class="r"><code>count(test, TenYearCHD, predCHD)
+(acc &lt;- (689 + 19)/848)
+# exercise: find another way to compute it </code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Let’s now see what accuracy we would have obtained if we just predicted <code>TenYearCHD = FALSE</code> for every observation without even considering the age.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuY291bnQodGVzdCwgVGVuWWVhckNIRClcbjcxOSAvIDg0OFxuYGBgIn0= -->
+<pre class="r"><code>count(test, TenYearCHD)
+719 / 848</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>That’s higher than the accuracy given by our system. However, we are interested in a high accuracy for the sick patients – not just overall! Let’s compute the accuracy of our classifier separately for healthy and sick patients.</p>
+<p>Accuracy on patients with TenYearCHD=TRUE.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuKHNlbnNpdGl2aXR5IDwtIDE5LzEyOSkgIyBha2EgVHJ1ZSBQb3NpdGl2ZSBSYXRlLCBvciBSZWNhbGxcbmBgYCJ9 -->
+<pre class="r"><code>(sensitivity &lt;- 19/129) # aka True Positive Rate, or Recall</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Accuracy on patients with TenYearCHD=FALSE.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuKHNwZWNpZmljaXR5IDwtIDY4OS83MTkpICMgYWthICgxIC0gRmFsc2UgUG9zaXRpdmUgUmF0ZSlcbmBgYCJ9 -->
+<pre class="r"><code>(specificity &lt;- 689/719) # aka (1 - False Positive Rate)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Alternative way:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtKHRlc3QkVGVuWWVhckNIRCA9PSBUUlVFICYgdGVzdCRwcmVkQ0hEID09IFRSVUUpL3N1bSh0ZXN0JFRlblllYXJDSEQgPT0gVFJVRSlcbmBgYCJ9 -->
+<pre class="r"><code>sum(test$TenYearCHD == TRUE &amp; test$predCHD == TRUE)/sum(test$TenYearCHD == TRUE)</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShyZWcpXG5cbmBgYCJ9 -->
-<pre class="r"><code>summary(reg)
-</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtKHRlc3QkVGVuWWVhckNIRCA9PSBGQUxTRSAmIHRlc3QkcHJlZENIRCA9PSBGQUxTRSkvc3VtKHRlc3QkVGVuWWVhckNIRCA9PSBGQUxTRSlcbmBgYCJ9 -->
+<pre class="r"><code>sum(test$TenYearCHD == FALSE &amp; test$predCHD == FALSE)/sum(test$TenYearCHD == FALSE)</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IFByaWNlIH4gQUdTVCArIEhhcnZlc3RSYWluLCBkYXRhID0gd2luZSlcblxuUmVzaWR1YWxzOlxuICAgICBNaW4gICAgICAgMVEgICBNZWRpYW4gICAgICAgM1EgICAgICBNYXggXG4tMS4zNTgwNyAtMC4zMDEzOCAgMC4wOTQ5OSAgMC4yMzY0NyAgMC45MTgzMiBcblxuQ29lZmZpY2llbnRzOlxuICAgICAgICAgICAgICBFc3RpbWF0ZSBTdGQuIEVycm9yIHQgdmFsdWUgUHIoPnx0fCkgICAgXG4oSW50ZXJjZXB0KSAtMS41NTJlLTE2ICAxLjEzMGUtMDEgICAwLjAwMCAxLjAwMDAwMCAgICBcbkFHU1QgICAgICAgICA2LjI1OGUtMDEgIDEuMTU2ZS0wMSAgIDUuNDE1IDEuOTRlLTA1ICoqKlxuSGFydmVzdFJhaW4gLTUuMjMwZS0wMSAgMS4xNTZlLTAxICAtNC41MjUgMC4wMDAxNjcgKioqXG4tLS1cblNpZ25pZi4gY29kZXM6ICAwICcqKionIDAuMDAxICcqKicgMC4wMSAnKicgMC4wNSAnLicgMC4xICcgJyAxXG5cblJlc2lkdWFsIHN0YW5kYXJkIGVycm9yOiAwLjU2NSBvbiAyMiBkZWdyZWVzIG9mIGZyZWVkb21cbk11bHRpcGxlIFItc3F1YXJlZDogIDAuNzA3NCxcdEFkanVzdGVkIFItc3F1YXJlZDogIDAuNjgwOCBcbkYtc3RhdGlzdGljOiAyNi41OSBvbiAyIGFuZCAyMiBERiwgIHAtdmFsdWU6IDEuMzQ3ZS0wNlxuIn0= -->
-<pre><code>
-Call:
-lm(formula = Price ~ AGST + HarvestRain, data = wine)
-
-Residuals:
-     Min       1Q   Median       3Q      Max 
--1.35807 -0.30138  0.09499  0.23647  0.91832 
-
-Coefficients:
-              Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept) -1.552e-16  1.130e-01   0.000 1.000000    
-AGST         6.258e-01  1.156e-01   5.415 1.94e-05 ***
-HarvestRain -5.230e-01  1.156e-01  -4.525 0.000167 ***
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-Residual standard error: 0.565 on 22 degrees of freedom
-Multiple R-squared:  0.7074,    Adjusted R-squared:  0.6808 
-F-statistic: 26.59 on 2 and 22 DF,  p-value: 1.347e-06</code></pre>
-<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>We can compare better. The order of magnitude of the effect of increasing is the same. For each Std Dev we know how much they influence.</p>
+<p>Let’s compute sensitivity and specificity as we decrease the threshold:</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShyZWcpXG5cbmBgYCJ9 -->
-<pre class="r"><code>summary(reg)
-</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZm9yIChUIGluIGMoMC4zLCAwLjI1LCAwLjIsIDAuMTUsIDAuMSkpIHtcbiAgdGVzdCRwcmVkQ0hEIDwtIHRlc3QkcHJvYkNIRCA+PSBUXG4gIHNlbnMgPC0gc3VtKHRlc3QkVGVuWWVhckNIRCA9PSBUUlVFICYgdGVzdCRwcmVkQ0hEID09IFRSVUUpL3N1bSh0ZXN0JFRlblllYXJDSEQgPT0gVFJVRSlcbiAgc3BlYyA8LSBzdW0odGVzdCRUZW5ZZWFyQ0hEID09IEZBTFNFICYgdGVzdCRwcmVkQ0hEID09IEZBTFNFKS9zdW0odGVzdCRUZW5ZZWFyQ0hEID09IEZBTFNFKVxuICBwcmludChwYXN0ZShULCBzZW5zLCBzcGVjKSlcbn1cbmBgYCJ9 -->
+<pre class="r"><code>for (T in c(0.3, 0.25, 0.2, 0.15, 0.1)) {
+  test$predCHD &lt;- test$probCHD &gt;= T
+  sens &lt;- sum(test$TenYearCHD == TRUE &amp; test$predCHD == TRUE)/sum(test$TenYearCHD == TRUE)
+  spec &lt;- sum(test$TenYearCHD == FALSE &amp; test$predCHD == FALSE)/sum(test$TenYearCHD == FALSE)
+  print(paste(T, sens, spec))
+}</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IFByaWNlIH4gLiwgZGF0YSA9IHdpbmUpXG5cblJlc2lkdWFsczpcbiAgICAgTWluICAgICAgIDFRICAgTWVkaWFuICAgICAgIDNRICAgICAgTWF4IFxuLTAuNzQwODMgLTAuMzc5MjEgLTAuMDExMTYgIDAuMzM4NDcgIDAuNzk5MzggXG5cbkNvZWZmaWNpZW50czogKDEgbm90IGRlZmluZWQgYmVjYXVzZSBvZiBzaW5ndWxhcml0aWVzKVxuICAgICAgICAgICAgICBFc3RpbWF0ZSBTdGQuIEVycm9yIHQgdmFsdWUgUHIoPnx0fCkgICAgXG4oSW50ZXJjZXB0KSAtMS43MDdlLTE2ICA5LjI4NWUtMDIgICAwLjAwMCAxLjAwMDAwMCAgICBcblllYXIgICAgICAgIC02LjkxNmUtMDMgIDkuMzQ0ZS0wMSAgLTAuMDA3IDAuOTk0MTcyICAgIFxuV2ludGVyUmFpbiAgIDIuMTIwZS0wMSAgMS4wODBlLTAxICAgMS45NjMgMC4wNjQ0MTYgLiAgXG5BR1NUICAgICAgICAgNi4yNDRlLTAxICAxLjA3MGUtMDEgICA1LjgzNiAxLjI3ZS0wNSAqKipcbkhhcnZlc3RSYWluIC00LjUyOWUtMDEgIDEuMDAxZS0wMSAgLTQuNTIzIDAuMDAwMjMzICoqKlxuQWdlICAgICAgICAgICAgICAgICBOQSAgICAgICAgIE5BICAgICAgTkEgICAgICAgTkEgICAgXG5GcmFuY2VQb3AgICAtMi43OTFlLTAxICA5LjM5NGUtMDEgIC0wLjI5NyAwLjc2OTU3OCAgICBcbi0tLVxuU2lnbmlmLiBjb2RlczogIDAgJyoqKicgMC4wMDEgJyoqJyAwLjAxICcqJyAwLjA1ICcuJyAwLjEgJyAnIDFcblxuUmVzaWR1YWwgc3RhbmRhcmQgZXJyb3I6IDAuNDY0MyBvbiAxOSBkZWdyZWVzIG9mIGZyZWVkb21cbk11bHRpcGxlIFItc3F1YXJlZDogIDAuODI5NCxcdEFkanVzdGVkIFItc3F1YXJlZDogIDAuNzg0NSBcbkYtc3RhdGlzdGljOiAxOC40NyBvbiA1IGFuZCAxOSBERiwgIHAtdmFsdWU6IDEuMDQ0ZS0wNlxuIn0= -->
-<pre><code>
-Call:
-lm(formula = Price ~ ., data = wine)
-
-Residuals:
-     Min       1Q   Median       3Q      Max 
--0.74083 -0.37921 -0.01116  0.33847  0.79938 
-
-Coefficients: (1 not defined because of singularities)
-              Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept) -1.707e-16  9.285e-02   0.000 1.000000    
-Year        -6.916e-03  9.344e-01  -0.007 0.994172    
-WinterRain   2.120e-01  1.080e-01   1.963 0.064416 .  
-AGST         6.244e-01  1.070e-01   5.836 1.27e-05 ***
-HarvestRain -4.529e-01  1.001e-01  -4.523 0.000233 ***
-Age                 NA         NA      NA       NA    
-FrancePop   -2.791e-01  9.394e-01  -0.297 0.769578    
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-Residual standard error: 0.4643 on 19 degrees of freedom
-Multiple R-squared:  0.8294,    Adjusted R-squared:  0.7845 
-F-statistic: 18.47 on 5 and 19 DF,  p-value: 1.044e-06</code></pre>
-<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>Why is there an NA on wine? <span class="math inline">\(y = a_0 + a_1x_1 + a_2x_2\)</span> Suppose <span class="math inline">\(x_1 = x_2\)</span> So my model is <span class="math inline">\(a_0 + (a_1 + a_2)x_1\)</span> I can create another model that is <span class="math inline">\(a_0 + a'_1x_1 +a'_2x_2\)</span> with <span class="math inline">\(a'_1 + a'_2 = a_1 + a_2\)</span> Linear regression is a convex optimization problem. Minimize a parabola that has one global minumim (those are <span class="math inline">\(a_1, a_2\)</span>). We have an error function <span class="math inline">\(err(a_0, a_1, a_2)\)</span> that is minimized by linear regression There is not anyomre a UNIQUE minimum because <span class="math inline">\(a_1 and a_2\)</span> are other solutions We can choose whatever numbers we want for the sum. This is because <span class="math inline">\(x_1\)</span> and <span class="math inline">\(x_2\)</span> are the same. Perfectly positive correlated: <span class="math inline">\(corr(x_1, x_2) = +1/-1\)</span></p>
+<p>The tradeoff is unavoidable (no free lunch!).</p>
+<p>We can capture it with the ROC Curve.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuY29yKHdpbmUpXG5cbmBgYCJ9 -->
-<pre class="r"><code>cor(wine)
-</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShST0NSKVxucm9jcl9wcmVkIDwtIHByZWRpY3Rpb24odGVzdCRwcm9iQ0hELCB0ZXN0JFRlblllYXJDSEQpXG5yb2NyX3BlcmYgPC0gcGVyZm9ybWFuY2Uocm9jcl9wcmVkLCBcInRwclwiLCBcImZwclwiKVxucGxvdChyb2NyX3BlcmYsIGNvbG9yaXplID0gVFJVRSwgbHdkID0gMylcbmdyaWQoKVxuYGBgIn0= -->
+<pre class="r"><code>library(ROCR)
+rocr_pred &lt;- prediction(test$probCHD, test$TenYearCHD)
+rocr_perf &lt;- performance(rocr_pred, &quot;tpr&quot;, &quot;fpr&quot;)
+plot(rocr_perf, colorize = TRUE, lwd = 3)
+grid()</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiICAgICAgICAgICAgICAgICAgIFllYXIgICAgICBQcmljZSAgIFdpbnRlclJhaW4gICAgICAgIEFHU1QgSGFydmVzdFJhaW4gICAgICAgICBBZ2UgICAgRnJhbmNlUG9wXG5ZZWFyICAgICAgICAgMS4wMDAwMDAwMCAtMC40NDc3Njc5ICAwLjAxNjk3MDAyNCAtMC4yNDY5MTU4NSAgMC4wMjgwMDkwNyAtMS4wMDAwMDAwMCAgMC45OTQ0ODUwOTdcblByaWNlICAgICAgIC0wLjQ0Nzc2Nzg2ICAxLjAwMDAwMDAgIDAuMTM2NjUwNTQ3ICAwLjY1OTU2Mjg2IC0wLjU2MzMyMTkwICAwLjQ0Nzc2Nzg2IC0wLjQ2Njg2MTY0MVxuV2ludGVyUmFpbiAgIDAuMDE2OTcwMDIgIDAuMTM2NjUwNSAgMS4wMDAwMDAwMDAgLTAuMzIxMDkwNjEgLTAuMjc1NDQwODUgLTAuMDE2OTcwMDIgLTAuMDAxNjIxNjI3XG5BR1NUICAgICAgICAtMC4yNDY5MTU4NSAgMC42NTk1NjI5IC0wLjMyMTA5MDYxMSAgMS4wMDAwMDAwMCAtMC4wNjQ0OTU5MyAgMC4yNDY5MTU4NSAtMC4yNTkxNjIyNzRcbkhhcnZlc3RSYWluICAwLjAyODAwOTA3IC0wLjU2MzMyMTkgLTAuMjc1NDQwODU0IC0wLjA2NDQ5NTkzICAxLjAwMDAwMDAwIC0wLjAyODAwOTA3ICAwLjA0MTI2NDM5NFxuQWdlICAgICAgICAgLTEuMDAwMDAwMDAgIDAuNDQ3NzY3OSAtMC4wMTY5NzAwMjQgIDAuMjQ2OTE1ODUgLTAuMDI4MDA5MDcgIDEuMDAwMDAwMDAgLTAuOTk0NDg1MDk3XG5GcmFuY2VQb3AgICAgMC45OTQ0ODUxMCAtMC40NjY4NjE2IC0wLjAwMTYyMTYyNyAtMC4yNTkxNjIyNyAgMC4wNDEyNjQzOSAtMC45OTQ0ODUxMCAgMS4wMDAwMDAwMDBcbiJ9 -->
-<pre><code>                   Year      Price   WinterRain        AGST HarvestRain         Age    FrancePop
-Year         1.00000000 -0.4477679  0.016970024 -0.24691585  0.02800907 -1.00000000  0.994485097
-Price       -0.44776786  1.0000000  0.136650547  0.65956286 -0.56332190  0.44776786 -0.466861641
-WinterRain   0.01697002  0.1366505  1.000000000 -0.32109061 -0.27544085 -0.01697002 -0.001621627
-AGST        -0.24691585  0.6595629 -0.321090611  1.00000000 -0.06449593  0.24691585 -0.259162274
-HarvestRain  0.02800907 -0.5633219 -0.275440854 -0.06449593  1.00000000 -0.02800907  0.041264394
-Age         -1.00000000  0.4477679 -0.016970024  0.24691585 -0.02800907  1.00000000 -0.994485097
-FrancePop    0.99448510 -0.4668616 -0.001621627 -0.25916227  0.04126439 -0.99448510  1.000000000</code></pre>
-<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>Called collinearity and happens if we have the same information in the dataset. The quality of the model is the same. The interpretation of the coefficient becames difficult.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShyZWcpXG5cbmBgYCJ9 -->
-<pre class="r"><code>summary(reg)
-</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucGVyZm9ybWFuY2Uocm9jcl9wcmVkLCBcImF1Y1wiKUB5LnZhbHVlc1xuYGBgIn0= -->
+<pre class="r"><code>performance(rocr_pred, &quot;auc&quot;)@y.values</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IFByaWNlIH4gLiAtIFllYXIsIGRhdGEgPSB3aW5lKVxuXG5SZXNpZHVhbHM6XG4gICAgIE1pbiAgICAgICAxUSAgIE1lZGlhbiAgICAgICAzUSAgICAgIE1heCBcbi0wLjc0MDgzIC0wLjM3OTIxIC0wLjAxMTE2ICAwLjMzODQ3ICAwLjc5OTM4IFxuXG5Db2VmZmljaWVudHM6XG4gICAgICAgICAgICAgIEVzdGltYXRlIFN0ZC4gRXJyb3IgdCB2YWx1ZSBQcig+fHR8KSAgICBcbihJbnRlcmNlcHQpIC0xLjcwN2UtMTYgIDkuMjg1ZS0wMiAgIDAuMDAwIDEuMDAwMDAwICAgIFxuV2ludGVyUmFpbiAgIDIuMTIwZS0wMSAgMS4wODBlLTAxICAgMS45NjMgMC4wNjQ0MTYgLiAgXG5BR1NUICAgICAgICAgNi4yNDRlLTAxICAxLjA3MGUtMDEgICA1LjgzNiAxLjI3ZS0wNSAqKipcbkhhcnZlc3RSYWluIC00LjUyOWUtMDEgIDEuMDAxZS0wMSAgLTQuNTIzIDAuMDAwMjMzICoqKlxuQWdlICAgICAgICAgIDYuOTE2ZS0wMyAgOS4zNDRlLTAxICAgMC4wMDcgMC45OTQxNzIgICAgXG5GcmFuY2VQb3AgICAtMi43OTFlLTAxICA5LjM5NGUtMDEgIC0wLjI5NyAwLjc2OTU3OCAgICBcbi0tLVxuU2lnbmlmLiBjb2RlczogIDAgJyoqKicgMC4wMDEgJyoqJyAwLjAxICcqJyAwLjA1ICcuJyAwLjEgJyAnIDFcblxuUmVzaWR1YWwgc3RhbmRhcmQgZXJyb3I6IDAuNDY0MyBvbiAxOSBkZWdyZWVzIG9mIGZyZWVkb21cbk11bHRpcGxlIFItc3F1YXJlZDogIDAuODI5NCxcdEFkanVzdGVkIFItc3F1YXJlZDogIDAuNzg0NSBcbkYtc3RhdGlzdGljOiAxOC40NyBvbiA1IGFuZCAxOSBERiwgIHAtdmFsdWU6IDEuMDQ0ZS0wNlxuIn0= -->
-<pre><code>
-Call:
-lm(formula = Price ~ . - Year, data = wine)
-
-Residuals:
-     Min       1Q   Median       3Q      Max 
--0.74083 -0.37921 -0.01116  0.33847  0.79938 
-
-Coefficients:
-              Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept) -1.707e-16  9.285e-02   0.000 1.000000    
-WinterRain   2.120e-01  1.080e-01   1.963 0.064416 .  
-AGST         6.244e-01  1.070e-01   5.836 1.27e-05 ***
-HarvestRain -4.529e-01  1.001e-01  -4.523 0.000233 ***
-Age          6.916e-03  9.344e-01   0.007 0.994172    
-FrancePop   -2.791e-01  9.394e-01  -0.297 0.769578    
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-Residual standard error: 0.4643 on 19 degrees of freedom
-Multiple R-squared:  0.8294,    Adjusted R-squared:  0.7845 
-F-statistic: 18.47 on 5 and 19 DF,  p-value: 1.044e-06</code></pre>
-<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Let’s now do a regression using all predictors.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucmVnIDwtIGdsbShUZW5ZZWFyQ0hEIH4gLiwgZGF0YSA9IHRyYWluLCBmYW1pbHkgPSBcImJpbm9taWFsXCIpXG5zdW1tYXJ5KHJlZylcbmBgYCJ9 -->
+<pre class="r"><code>reg &lt;- glm(TenYearCHD ~ ., data = train, family = &quot;binomial&quot;)
+summary(reg)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>If you recompute the ROC curve, you will see it’s better (and the AUC is higher).</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudGVzdCRwcm9iQ0hEIDwtIHByZWRpY3QocmVnLCBuZXdkYXRhID0gdGVzdCwgdHlwZSA9IFwicmVzcG9uc2VcIikgIyBvbiB0aGUgdGVzdCBzZXRcbnJvY3JfcHJlZCA8LSBwcmVkaWN0aW9uKHRlc3QkcHJvYkNIRCwgdGVzdCRUZW5ZZWFyQ0hEKVxucm9jcl9wZXJmIDwtIHBlcmZvcm1hbmNlKHJvY3JfcHJlZCwgXCJ0cHJcIiwgXCJmcHJcIilcbnBsb3Qocm9jcl9wZXJmLCBjb2xvcml6ZSA9IFRSVUUsIGx3ZCA9IDMpXG5ncmlkKClcbnBlcmZvcm1hbmNlKHJvY3JfcHJlZCwgXCJhdWNcIilAeS52YWx1ZXNcbmBgYCJ9 -->
+<pre class="r"><code>test$probCHD &lt;- predict(reg, newdata = test, type = &quot;response&quot;) # on the test set
+rocr_pred &lt;- prediction(test$probCHD, test$TenYearCHD)
+rocr_perf &lt;- performance(rocr_pred, &quot;tpr&quot;, &quot;fpr&quot;)
+plot(rocr_perf, colorize = TRUE, lwd = 3)
+grid()
+performance(rocr_pred, &quot;auc&quot;)@y.values</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiUiBOb3RlYm9vayIKb3V0cHV0OgogIGh0bWxfZG9jdW1lbnQ6CiAgICBkZl9wcmludDogcGFnZWQKLS0tCgpgYGB7cn0KbGlicmFyeSh0aWR5dmVyc2UpCndpbmVSZWcgPSBsbShQcmljZSB+IEFHU1QgKyBIYXJ2ZXN0UmFpbiwgZGF0YSA9IHdpbmUpCnN1bW1hcnkod2luZVJlZykKYGBgCgokIFxtdSAkIGlzIHRoZSBhdmcKJCBcc2lnbWEgJCBpcyB0aGUgc3RkRGV2CldlIGNhbiBoYXZlIGFuICRBR1NUJyA9IChBR1NUIC0gXG11KS9cc2lnbWEkClNvICRhIC0oYlxtdS9cc2lnbWEpICsgYiQKU29tZWhvdyB0aGF0J3Mgd2hhdCB3ZSBhcmUgZG9pbmcKCmBgYHtyfQpzY2FsZSh3aW5lKQp3aW5lID0gYXMuZGF0YS5mcmFtZShzY2FsZSh3aW5lKSkKc3VtbWFyeSh3aW5lKQojIE5vdyBldmVyeXRoaW5nIGhhcyBtZWFuIDAKc2Qod2luZSRQcmljZSkKIyBBbmQgU3RkIERldiAxCmBgYAoKCmBgYHtyfQpyZWcgPSBsbShQcmljZSB+IEFHU1QgKyBIYXJ2ZXN0UmFpbiwgZGF0YSA9IHdpbmUpCnN1bW1hcnkocmVnKQpgYGAKV2UgY2FuIGNvbXBhcmUgYmV0dGVyLiBUaGUgb3JkZXIgb2YgbWFnbml0dWRlIG9mIHRoZSBlZmZlY3Qgb2YgaW5jcmVhc2luZyBpcyB0aGUgc2FtZS4KRm9yIGVhY2ggU3RkIERldiB3ZSBrbm93IGhvdyBtdWNoIHRoZXkgaW5mbHVlbmNlLgoKYGBge3J9CnJlZyA9IGxtKFByaWNlIH4gLiwgZGF0YSA9IHdpbmUpCnN1bW1hcnkocmVnKQpgYGAKV2h5IGlzIHRoZXJlIGFuIE5BIG9uIHdpbmU/CiR5ID0gYV8wICsgYV8xeF8xICsgYV8yeF8yJApTdXBwb3NlICR4XzEgPSB4XzIkClNvIG15IG1vZGVsIGlzICRhXzAgKyAoYV8xICsgYV8yKXhfMSQKSSBjYW4gY3JlYXRlIGFub3RoZXIgbW9kZWwgdGhhdCBpcyAkYV8wICsgYSdfMXhfMSArYSdfMnhfMiQgd2l0aCAkYSdfMSArIGEnXzIgPSBhXzEgKyBhXzIkCkxpbmVhciByZWdyZXNzaW9uIGlzIGEgY29udmV4IG9wdGltaXphdGlvbiBwcm9ibGVtLiBNaW5pbWl6ZSBhIHBhcmFib2xhIHRoYXQgaGFzIG9uZSBnbG9iYWwgbWludW1pbSAodGhvc2UgYXJlICRhXzEsIGFfMiQpLiAKV2UgaGF2ZSBhbiBlcnJvciBmdW5jdGlvbiAkZXJyKGFfMCwgYV8xLCBhXzIpJCB0aGF0IGlzIG1pbmltaXplZCBieSBsaW5lYXIgcmVncmVzc2lvbgpUaGVyZSBpcyBub3QgYW55b21yZSBhIFVOSVFVRSBtaW5pbXVtIGJlY2F1c2UgJGFfMSBhbmQgYV8yJCBhcmUgb3RoZXIgc29sdXRpb25zCldlIGNhbiBjaG9vc2Ugd2hhdGV2ZXIgbnVtYmVycyB3ZSB3YW50IGZvciB0aGUgc3VtLiBUaGlzIGlzIGJlY2F1c2UgJHhfMSQgYW5kICR4XzIkIGFyZSB0aGUgc2FtZS4KUGVyZmVjdGx5IHBvc2l0aXZlIGNvcnJlbGF0ZWQ6ICRjb3JyKHhfMSwgeF8yKSA9ICsxLy0xJAoKYGBge3J9CmNvcih3aW5lJFllYXIsIHdpbmUkQWdlKQpjb3Iod2luZSkKYGBgCgpDYWxsZWQgY29sbGluZWFyaXR5IGFuZCBoYXBwZW5zIGlmIHdlIGhhdmUgdGhlIHNhbWUgaW5mb3JtYXRpb24gaW4gdGhlIGRhdGFzZXQuClRoZSBxdWFsaXR5IG9mIHRoZSBtb2RlbCBpcyB0aGUgc2FtZS4gVGhlIGludGVycHJldGF0aW9uIG9mIHRoZSBjb2VmZmljaWVudCBiZWNhbWVzIGRpZmZpY3VsdC4KCmBgYHtyfQpyZWcgPSBsbShQcmljZSB+IC4gLSBZZWFyLCBkYXRhID0gd2luZSkKc3VtbWFyeShyZWcpCmBgYAoK</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiUiBOb3RlYm9vayIKb3V0cHV0OgogIHBkZl9kb2N1bWVudDogZGVmYXVsdAogIGh0bWxfbm90ZWJvb2s6IGRlZmF1bHQKICBodG1sX2RvY3VtZW50OiBkZWZhdWx0Ci0tLQoKTG9hZCBhbmQgZXhwbG9yZSB0aGUgZGF0YXNldC4KYGBge3J9CmxpYnJhcnkodGlkeXZlcnNlKQpmcmFtaW5naGFtIDwtIHJlYWQuY3N2KCJmcmFtaW5naGFtLmNzdiIpCnN1bW1hcnkoZnJhbSkKYGBgCgpMZXQncyBleHBsb3JlIG1vcmUuCmBgYHtyfQpnZ3Bsb3QoZnJhbWluZ2hhbSkgKwogIGdlb21fYm94cGxvdChhZXMoeCA9IFRlblllYXJDSEQsIHkgPSBhZ2UpKQpnZ3Bsb3QoZGF0YSkgKwogIGdlb21fYmFyKGFlcyh4ID0gYWdlLCBmaWxsID0gVGVuWWVhckNIRCkpCmdncGxvdChkYXRhKSArCiAgZ2VvbV9iYXIoYWVzKHggPSBtYWxlLCBmaWxsID0gVGVuWWVhckNIRCksIHBvc2l0aW9uID0gImZpbGwiKQpgYGAKCkl0IHNlZW1zIHRoYXQgYGFnZWAgY291bGQgYmUgYSBnb29kIHByZWRpY3Rvci4KCkxvZ2lzdGljIHJlZ3Jlc3Npb24gdXNpbmcgb25lIHByZWRpY3RvciwgYGFnZWAuIEZpcnN0LCBsZXQncyBzcGxpdC4KYGBge3J9CmxpYnJhcnkoY2FUb29scykKc2V0LnNlZWQoMSkKc3AgPC0gc2FtcGxlLnNwbGl0KGZyYW1pbmdoYW0kVGVuWWVhckNIRCwgU3BsaXRSYXRpbyA9IDAuOCkKdHJhaW4gPC0gc3Vic2V0KGZyYW1pbmdoYW0sIHNwID09IFRSVUUpCnRlc3QgPC0gc3Vic2V0KGZyYW1pbmdoYW0sIHNwID09IEZBTFNFKQpgYGAKCkxvZ2lzdGljIHJlZ3Jlc3Npb24uIFdlIHVzZSB0aGUgZnVuY3Rpb24gYGdsbWAuIFJlbWVtYmVyIHRvIHBhc3MgdGhlIG9wdGlvbiBgZmFtaWx5ID0gImJpbm9taWFsImAuCmBgYHtyfQpyZWcgPC0gZ2xtKFRlblllYXJDSEQgfiBhZ2UsIGRhdGEgPSB0cmFpbiwgZmFtaWx5ID0gImJpbm9taWFsIikKc3VtbWFyeShyZWcpCmBgYAoKV2UgY2FuIHByZWRpY3QgdXNpbmcgYHByZWRpY3QoKWAuCkxldCdzIHNlZSB3aGF0IHRoZSBwcmVkaWN0aW9ucyBhcmUgYXMgdGhlIGFnZSBnb3dzIGZyb20gMTAgdG8gMTAwLgpgYGB7cn0KZmFrZSA8LSBkYXRhLmZyYW1pbmdoYW1lKGFnZSA9IHNlcSgxMCwgMTAwLCBieT0xMCkpICMgb25seSBvbmUgY29sdW1uLCBhZ2UsIHdpdGggdmFsdWVzIDEwLCAyMCwgLi4uLCAxMDAKcHJlZGljdChyZWcsIG5ld2RhdGEgPSBmYWtlLCB0eXBlID0gInJlc3BvbnNlIikKYGBgCgpMZXQncyBwcmVkaWN0IG9uIHRoZSB0ZXN0IHNldC4KV2UgdXNlIHRoZSBmdW5jdGlvbiBgcHJlZGljdGAuClJlbWVtYmVyIHRvIHBhc3MgdGhlIG9wdGlvbiBgdHlwZSA9ICJyZXNwb25zZSJgIHRvIGdldCB0aGUgcHJvYmFiaWxpdGllcyAob3RoZXJ3aXNlIHlvdSBnZXQgdGhlIGxvZy1vZGRzKS4KYGBge3J9CnRlc3QkcHJvYkNIRCA8LSBwcmVkaWN0KHJlZywgbmV3ZGF0YSA9IHRlc3QsIHR5cGUgPSAicmVzcG9uc2UiKSAjIG9uIHRoZSB0ZXN0IHNldApgYGAKCkRvZXMgdGhlIGRpc3RyaWJ1dGlvbiBvZiBwcmVkaWN0ZWQgcHJvYmFiaWxpdGllcyBtYXRjaCBvdXIgaW50dWl0aW9uPwpgYGB7cn0KZ2dwbG90KHRlc3QpICsKICBnZW9tX2hpc3RvZ3JhbShhZXMoeCA9IHByb2JDSEQsIGZpbGwgPSBUZW5ZZWFyQ0hEKSkgIyBoaXN0b2dyYW0gcGxvdCBvZiB0aGUgcHJlZGljdGVkIHByb2JhYmlsaXR5CmBgYAoKTGV0J3MgY29udmVydGluZyBpbnRvIGJpbmFyeSBwcmVkaWN0aW9ucy4KYGBge3J9ClQgPC0gMC4zCnRlc3QkcHJlZENIRCA8LSB0ZXN0JHByb2JDSEQgPj0gVApgYGAKCldoYXQgaXMgdGhlIHBlcmZvcm1hbmNlIG9mIHRoZSBzeXN0ZW0/IExldCdzIHN0YXJ0IGJ5IGNvbXB1dGluZyB0aGUgYWNjdXJhY3kuCmBgYHtyfQpjb3VudCh0ZXN0LCBUZW5ZZWFyQ0hELCBwcmVkQ0hEKQooYWNjIDwtICg2ODkgKyAxOSkvODQ4KQojIGV4ZXJjaXNlOiBmaW5kIGFub3RoZXIgd2F5IHRvIGNvbXB1dGUgaXQgCmBgYAoKTGV0J3Mgbm93IHNlZSB3aGF0IGFjY3VyYWN5IHdlIHdvdWxkIGhhdmUgb2J0YWluZWQgaWYgd2UganVzdCBwcmVkaWN0ZWQgYFRlblllYXJDSEQgPSBGQUxTRWAgZm9yIGV2ZXJ5IG9ic2VydmF0aW9uIHdpdGhvdXQgZXZlbiBjb25zaWRlcmluZyB0aGUgYWdlLgpgYGB7cn0KY291bnQodGVzdCwgVGVuWWVhckNIRCkKNzE5IC8gODQ4CmBgYAoKVGhhdCdzIGhpZ2hlciB0aGFuIHRoZSBhY2N1cmFjeSBnaXZlbiBieSBvdXIgc3lzdGVtLgpIb3dldmVyLCB3ZSBhcmUgaW50ZXJlc3RlZCBpbiBhIGhpZ2ggYWNjdXJhY3kgZm9yIHRoZSBzaWNrIHBhdGllbnRzIC0tIG5vdCBqdXN0IG92ZXJhbGwhCkxldCdzIGNvbXB1dGUgdGhlIGFjY3VyYWN5IG9mIG91ciBjbGFzc2lmaWVyIHNlcGFyYXRlbHkgZm9yIGhlYWx0aHkgYW5kIHNpY2sgcGF0aWVudHMuCgpBY2N1cmFjeSBvbiBwYXRpZW50cyB3aXRoIFRlblllYXJDSEQ9VFJVRS4KYGBge3J9CihzZW5zaXRpdml0eSA8LSAxOS8xMjkpICMgYWthIFRydWUgUG9zaXRpdmUgUmF0ZSwgb3IgUmVjYWxsCmBgYApBY2N1cmFjeSBvbiBwYXRpZW50cyB3aXRoIFRlblllYXJDSEQ9RkFMU0UuCmBgYHtyfQooc3BlY2lmaWNpdHkgPC0gNjg5LzcxOSkgIyBha2EgKDEgLSBGYWxzZSBQb3NpdGl2ZSBSYXRlKQpgYGAKCkFsdGVybmF0aXZlIHdheToKYGBge3J9CnN1bSh0ZXN0JFRlblllYXJDSEQgPT0gVFJVRSAmIHRlc3QkcHJlZENIRCA9PSBUUlVFKS9zdW0odGVzdCRUZW5ZZWFyQ0hEID09IFRSVUUpCmBgYAoKYGBge3J9CnN1bSh0ZXN0JFRlblllYXJDSEQgPT0gRkFMU0UgJiB0ZXN0JHByZWRDSEQgPT0gRkFMU0UpL3N1bSh0ZXN0JFRlblllYXJDSEQgPT0gRkFMU0UpCmBgYAoKTGV0J3MgY29tcHV0ZSBzZW5zaXRpdml0eSBhbmQgc3BlY2lmaWNpdHkgYXMgd2UgZGVjcmVhc2UgdGhlIHRocmVzaG9sZDoKYGBge3J9CmZvciAoVCBpbiBjKDAuMywgMC4yNSwgMC4yLCAwLjE1LCAwLjEpKSB7CiAgdGVzdCRwcmVkQ0hEIDwtIHRlc3QkcHJvYkNIRCA+PSBUCiAgc2VucyA8LSBzdW0odGVzdCRUZW5ZZWFyQ0hEID09IFRSVUUgJiB0ZXN0JHByZWRDSEQgPT0gVFJVRSkvc3VtKHRlc3QkVGVuWWVhckNIRCA9PSBUUlVFKQogIHNwZWMgPC0gc3VtKHRlc3QkVGVuWWVhckNIRCA9PSBGQUxTRSAmIHRlc3QkcHJlZENIRCA9PSBGQUxTRSkvc3VtKHRlc3QkVGVuWWVhckNIRCA9PSBGQUxTRSkKICBwcmludChwYXN0ZShULCBzZW5zLCBzcGVjKSkKfQpgYGAKClRoZSB0cmFkZW9mZiBpcyB1bmF2b2lkYWJsZSAobm8gZnJlZSBsdW5jaCEpLgoKV2UgY2FuIGNhcHR1cmUgaXQgd2l0aCB0aGUgUk9DIEN1cnZlLgpgYGB7cn0KbGlicmFyeShST0NSKQpyb2NyX3ByZWQgPC0gcHJlZGljdGlvbih0ZXN0JHByb2JDSEQsIHRlc3QkVGVuWWVhckNIRCkKcm9jcl9wZXJmIDwtIHBlcmZvcm1hbmNlKHJvY3JfcHJlZCwgInRwciIsICJmcHIiKQpwbG90KHJvY3JfcGVyZiwgY29sb3JpemUgPSBUUlVFLCBsd2QgPSAzKQpncmlkKCkKYGBgCgpgYGB7cn0KcGVyZm9ybWFuY2Uocm9jcl9wcmVkLCAiYXVjIilAeS52YWx1ZXMKYGBgCgpMZXQncyBub3cgZG8gYSByZWdyZXNzaW9uIHVzaW5nIGFsbCBwcmVkaWN0b3JzLgpgYGB7cn0KcmVnIDwtIGdsbShUZW5ZZWFyQ0hEIH4gLiwgZGF0YSA9IHRyYWluLCBmYW1pbHkgPSAiYmlub21pYWwiKQpzdW1tYXJ5KHJlZykKYGBgCgpJZiB5b3UgcmVjb21wdXRlIHRoZSBST0MgY3VydmUsIHlvdSB3aWxsIHNlZSBpdCdzIGJldHRlciAoYW5kIHRoZSBBVUMgaXMgaGlnaGVyKS4KCmBgYHtyfQp0ZXN0JHByb2JDSEQgPC0gcHJlZGljdChyZWcsIG5ld2RhdGEgPSB0ZXN0LCB0eXBlID0gInJlc3BvbnNlIikgIyBvbiB0aGUgdGVzdCBzZXQKcm9jcl9wcmVkIDwtIHByZWRpY3Rpb24odGVzdCRwcm9iQ0hELCB0ZXN0JFRlblllYXJDSEQpCnJvY3JfcGVyZiA8LSBwZXJmb3JtYW5jZShyb2NyX3ByZWQsICJ0cHIiLCAiZnByIikKcGxvdChyb2NyX3BlcmYsIGNvbG9yaXplID0gVFJVRSwgbHdkID0gMykKZ3JpZCgpCnBlcmZvcm1hbmNlKHJvY3JfcHJlZCwgImF1YyIpQHkudmFsdWVzCmBgYAoK</div>
 
 
 

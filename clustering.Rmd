@@ -1,0 +1,90 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+str(iris)
+summary(iris)
+# Scatterplot of features, color = Species
+ggplot(iris) +
+  geom_point(aes(x = Petal.Length, y = Petal.Width, color = Species))
+```
+
+```{r}
+# Compute k-means
+(clustering <- kmeans(select(iris, -Species), centers = 3))
+clustering$cluster
+# Scatterplot with color = #cluster
+ggplot(iris) +
+  geom_point(aes(x = Sepal.Length, y = Petal.Width, color = clustering$cluster))
+# Convert clustering to factor (not continous)
+# We are plotting 4 (variables in the dataset) dimentions as 2 dimensions
+ggplot(iris) +
+  geom_point(aes(x = Sepal.Length, y = Petal.Width, color = as.factor(clustering$cluster)))
+```
+
+
+$ \sum (x_i - x_A)^2 $ 
+$ SST/ \sum (x_i - x_A)^2 $ 
+Variance explained by the clustering: $ 1 - \sum (SSE_c/SST) $ 
+SST: Sum of squared error for a cluster == SSE
+Underfitting when there is one cluster for each point
+Overfitting when there is only one cluster
+
+```{r}
+# How good is this clustering? Points that are close togther should end up together
+# We use the sum of the square distances
+clustering$tot.withinss # Within-cluster sum of squares
+clustering$totss # Total sum of squares
+1 - clustering$tot.withinss/clustering$totss # Variance explained by this clustering
+```
+
+```{r}
+# Increasing clusters increases complexity but also increases variance so find a good balance
+for (k in 1:100) {
+  clustering = kmeans(select(iris, -Species), centers = k)
+  print(1 - clustering$tot.withinss/clustering$totss)
+}
+```
+
+```{r}
+library(ggfortify)
+(clustering <- kmeans(select(iris, -Species), centers = 3))
+ggplot(iris) +
+  geom_point(aes(x = Sepal.Length, y = Petal.Width, color = as.factor(clustering$cluster)))
+autoplot(clustering, iris) #PCA Plotting
+```
+
+```{r}
+langfreq <- read.csv("~/dataScience/langfreq.csv", row.names = 1)
+head(langfreq)
+```
+
+```{r}
+ggplot(langfreq) + 
+  geom_text(aes(x = a, y = b, label = rownames(langfreq)))
+
+autoplot(prcomp(langfreq), shape = 32) + 
+  geom_text(aes(label = rownames(langfreq)))
+```
+
+```{r}
+# Compute distance matrix
+dm <- dist(langfreq)
+dm
+head(dm)
+summary(dm)
+# Try different methods: 
+# "single" is bad for this model
+# "ward.D2" seems decent
+(tree <- hclust(dm, method = "ward.D2"))
+(clusters <- cutree(tree, k = 6))
+# 32 is the "null" shape for the point (invisible)
+autoplot(prcomp(langfreq), shape = 32) + 
+  geom_text(aes(label = rownames(langfreq), color = as.factor(clusters)))
+plot(tree)
+plot(as.dendrogram(tree))
+```
+

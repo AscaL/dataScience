@@ -1,0 +1,39 @@
+---
+title: "Final Project: House Prices: Advanced Regression Techniques"
+output: html_notebook
+---
+
+Loading Libs
+```{r}
+install.packages("ggthemes", dependencies = T)
+library(ggplot2)
+library(ggthemes)
+```
+
+
+Loading the data
+```{r}
+test <- read.csv("~/dataScience/final/test.csv")
+train <- read.csv("~/dataScience/final/train.csv")
+sampleSub <- read.csv("~/dataScience/final/sample_submission.csv")
+summary(train)
+head(train)
+```
+
+First plot: SquareFeet vs Sale Price
+```{r}
+ggplot(train, aes(y = SalePrice, x = GrLivArea)) + geom_point()
+ggplot(train, aes(GrLivArea)) +
+  geom_histogram(fill = 'light green', color = 'black') +
+  theme_dark()
+```
+
+We can see that there are four outliers, let's remove them:
+```{r}
+train <- train[-which(train$GrLivArea > 4000)]
+# Why am i doing this?
+ggplot(train, aes(TotalBsmtSF)) + #total sqr feet of the basement
+  geom_histogram(fill = 'light green', color = 'black') +
+  theme_dark()
+```
+
