@@ -3,9 +3,11 @@ title: "Final Project: House Prices: Advanced Regression Techniques"
 output: html_notebook
 ---
 
+Project found on the [Kaggle Site](https://www.kaggle.com/c/house-prices-advanced-regression-techniques).
+
 Loading Libs
 ```{r}
-install.packages("ggthemes", dependencies = T)
+library(tidyverse)
 library(ggplot2)
 library(ggthemes)
 ```
@@ -37,3 +39,38 @@ ggplot(train, aes(TotalBsmtSF)) + #total sqr feet of the basement
   theme_dark()
 ```
 
+```{r}
+train <- train %>%
+  select_if(is.numeric)
+```
+
+```{r}
+library(reshape2)
+train %>%
+  cor() %>%
+  melt() %>%
+  ggplot() +
+  geom_tile(aes(x = Var1, y = Var2, fill = value))
+```
+
+Remove missing values
+```{r}
+colSums(is.na(train))
+train_mean <- colMeans(train, na.rm = T)
+train <- replace_na(train, replace = as.list(train_mean))
+colSums(is.na(train))
+
+# Plot GrLivArea vs SalePrice
+ggplot(train) +  geom_point(aes(y = SalePrice, x = GrLivArea))
+# Remove outliers
+train <- train[-which(train$GrLivArea > 4000),]
+ggplot(train) +  geom_point(aes(y = SalePrice, x = GrLivArea))
+# reg
+#train$SalePrice <- log(train$SalePrice)
+reg <- lm(SalePrice ~ GrLivArea, data = train)
+summary(reg)
+test$SalePrice <- predict(reg, newdata = test)
+test %>%
+  select(Id, SalePrice) %>%
+  write.csv(file = "prediction.csv", row.names = F)
+```
