@@ -5,11 +5,49 @@ output: html_notebook
 
 Project found on the [Kaggle Site](https://www.kaggle.com/c/house-prices-advanced-regression-techniques).
 
+## Loading Libs and Data
+
+```{r}
+load.libraries <- c('ggplot2', 'stringr', 'Matrix', 'corrplot', 'xgboost', 'glmnet', 'e1071', 'dplyr', 'randomForest', 'Metrics', 'caret', 'scales')
+install.lib <- load.libraries[!load.libraries %in% installed.packages()]
+for(libs in install.lib) install.packages(libs, dependences = TRUE)
+sapply(load.libraries, require, character = TRUE)
+```
+
+
+```{r}
+install.packages("tidyverse")
+install.packages("ggthemes", dependencies = T)
+install.packages("reshape2", dependencies = T)
+install.packages("Matrix", dependencies = T)
+install.packages("xgboost", dependencies = T)
+install.packages("Metrics", dependencies = T)
+install.packages("randomForest", dependencies = T)
+install.packages("dplyr", dependencies = T)
+install.packages("caret", dependencies = T)
+install.packages("scales", dependencies = T)
+install.packages("e1071", dependencies = T)
+install.packages("corrplot", dependencies = T)
+install.packages("glmnet", dependencies = T)
+```
+
+
 Loading Libs
 ```{r}
 library(tidyverse)
-library(ggplot2)
 library(ggthemes)
+require(ggplot2) # for data visualization
+require(stringr) #extracting string patterns
+require(Matrix) # matrix transformations
+require(glmnet) # ridge, lasso & elastinet
+require(xgboost) # gbm
+require(randomForest)
+require(Metrics) # rmse
+require(dplyr) # load this in last so plyr doens't overlap it
+require(caret) # one hot encoding
+require(scales) # plotting $$
+require(e1071) # skewness
+require(corrplot) # correlation plot
 ```
 
 
@@ -22,35 +60,49 @@ summary(train)
 head(train)
 ```
 
+
+## Tidying Data
+
 First plot: SquareFeet vs Sale Price
 ```{r}
-ggplot(train, aes(y = SalePrice, x = GrLivArea)) + geom_point()
+ggplot(train) +  geom_point(aes(x = GrLivArea, y = SalePrice)) + theme_minimal()
 ggplot(train, aes(GrLivArea)) +
   geom_histogram(fill = 'light green', color = 'black') +
-  theme_dark()
+  theme_minimal()
 ```
 
 We can see that there are four outliers, let's remove them:
 ```{r}
-train <- train[-which(train$GrLivArea > 4000)]
-# Why am i doing this?
-ggplot(train, aes(TotalBsmtSF)) + #total sqr feet of the basement
-  geom_histogram(fill = 'light green', color = 'black') +
-  theme_dark()
+train <- train[-which(train$GrLivArea > 4000),] #why is there a comma?
+# No more outliers
+ggplot(train) +  geom_point(aes(x = GrLivArea, y = SalePrice)) + theme_minimal()
 ```
 
+We need to handle NA in our data
 ```{r}
-train <- train %>%
+# See all NAs
+sort(colSums(sapply(train, is.na)), decreasing = T)
+```
+
+We also want to divide categoric and numeric features
+```{r}
+numTrain <- names(which(sapply(train, is.numeric)))
+catTrain <- names(which(sapply(train, is.character)))
+```
+
+
+```{r}
+trainNum <- train %>%
   select_if(is.numeric)
 ```
 
 ```{r}
 library(reshape2)
-train %>%
+trainNum %>%
   cor() %>%
   melt() %>%
   ggplot() +
-  geom_tile(aes(x = Var1, y = Var2, fill = value))
+  geom_tile(aes(x = Var1, y = Var2, fill = value)) + theme_minimal()
 ```
 
 Remove missing values
