@@ -29,6 +29,8 @@ install.packages("scales", dependencies = T)
 install.packages("e1071", dependencies = T)
 install.packages("corrplot", dependencies = T)
 install.packages("glmnet", dependencies = T)
+install.packages("rpart", dependencies = T)
+install.packages("repr", dependencies = T)
 ```
 
 
@@ -36,18 +38,21 @@ Loading Libs
 ```{r}
 library(tidyverse)
 library(ggthemes)
-require(ggplot2) # for data visualization
-require(stringr) #extracting string patterns
-require(Matrix) # matrix transformations
-require(glmnet) # ridge, lasso & elastinet
-require(xgboost) # gbm
-require(randomForest)
-require(Metrics) # rmse
-require(dplyr) # load this in last so plyr doens't overlap it
-require(caret) # one hot encoding
-require(scales) # plotting $$
-require(e1071) # skewness
-require(corrplot) # correlation plot
+library(rpart)
+library(reshape2)
+library(ggplot2) # for data visualization
+library(stringr) #extracting string patterns
+library(Matrix) # matrix transformations
+library(glmnet) # ridge, lasso & elastinet
+library(xgboost) # gbm
+library(randomForest)
+library(Metrics) # rmse
+library(dplyr) # load this in last so plyr doens't overlap it
+library(caret) # one hot encoding
+library(scales) # plotting $$
+library(e1071) # skewness
+library(corrplot) # correlation plot
+library(repr)
 ```
 
 
@@ -55,9 +60,11 @@ Loading the data
 ```{r}
 test <- read.csv("~/dataScience/final/test.csv")
 train <- read.csv("~/dataScience/final/train.csv")
-sampleSub <- read.csv("~/dataScience/final/sample_submission.csv")
-summary(train)
-head(train)
+# Test does not have SalePrice so we put it to NA for all
+test$SalePrice <- rep(NA, 1459)
+df <- rbind(train, test)
+#summary(df)
+head(df)
 ```
 
 
@@ -74,6 +81,7 @@ ggplot(train, aes(GrLivArea)) +
 We can see that there are four outliers, let's remove them:
 ```{r}
 train <- train[-which(train$GrLivArea > 4000),] #why is there a comma?
+df <- df[-which(df$GrLivArea > 4000),]
 # No more outliers
 ggplot(train) +  geom_point(aes(x = GrLivArea, y = SalePrice)) + theme_minimal()
 ```
@@ -82,7 +90,251 @@ We need to handle NA in our data
 ```{r}
 # See all NAs
 sort(colSums(sapply(train, is.na)), decreasing = T)
+sort(colSums(sapply(df, is.na)), decreasing = T)
+# list rows of data that have missing values 
+missing <- train[!complete.cases(train),]
+#head(missing)
+#summary(missing)
+nrow(missing)
+
+ggplot(train, aes(x = SalePrice, fill = ..count..)) +
+  geom_histogram(binwidth = 5000) +
+  ggtitle("Figure 1 Histogram of SalePrice") +
+  ylab("Count of houses") +
+  xlab("Housing price") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+train$lSalePrice = log(train$SalePrice) #could be +1
+
+ggplot(train, aes(x = lSalePrice, fill = ..count..)) +
+  geom_histogram(binwidth = 0.05) +
+  ggtitle("Figure 2 Histogram of log SalePrice") +
+  ylab("Count of houses") +
+  xlab("Housing Price") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+# Distribution of MSZoning
+options(repr.plot.width=5, repr.plot.height=4)
+ggplot(train, aes(x = MSZoning, fill = MSZoning )) + 
+geom_bar()+ 
+scale_fill_hue(c = 80)+
+ggtitle("Figure 3 Distribution of MSZoning")+
+theme(plot.title = element_text(hjust = 0.5))+
+geom_text(stat='count',aes(label=..count..),vjust=-0.25)
+
+# SalePrice vs OverallQuality
+ggplot(train, aes(x = SalePrice,fill = as.factor(OverallQual))) +
+  geom_histogram(position = "stack", binwidth = 10000) +
+  ggtitle("Figure 6 Histogram of SalePrice") +
+  ylab("Count") +
+  xlab("Housing Price") + 
+  scale_fill_discrete(name="OverallQual")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+# convert factor to numeric
+train$ExterQual2 <- as.numeric(factor(train$ExterQual, 
+                                  levels = c("Ex", "Fa","Gd", "TA"),
+                                  labels = c(5,2,4,3) ,ordered = TRUE))
+
+train$ExterCond2 <- as.numeric(factor(train$ExterCond, 
+                                  levels = c("Ex", "Fa","Gd", "TA","Po"),
+                                  labels = c(5,2,4,3,1) ,ordered = TRUE))
+
+train$BsmtQual2 <- as.numeric(factor(train$BsmtQual, 
+                                  levels = c("Ex", "Fa","Gd", "TA"),
+                                  labels = c(5,2,4,3) ,ordered = TRUE))
+
+train$BsmtCond2 <- as.numeric(factor(train$BsmtCond, 
+                                 levels = c("Fa", "Gd","Po", "TA"),
+                                 labels = c(2,4,1,3) ,ordered = TRUE))
+
+train$HeatingQC2 <- as.numeric(factor(train$HeatingQC, 
+                                  levels = c("Ex", "Fa","Gd", "TA","Po"),
+                                  labels = c(5,2,4,3,1) ,ordered = TRUE))
+train$CentralAir2 <- as.numeric(factor(train$CentralAir, 
+                                  levels = c("N", "Y"),
+                                  labels = c(0,1) ,ordered = TRUE))
+
+
+#select variables that be used for model buidling and heat map
+model_var <- c('SalePrice', 
+                'OverallQual','OverallCond','YearBuilt', 'ExterQual2','ExterCond2',
+                'TotalBsmtSF','HeatingQC2', 
+                'CentralAir2','GrLivArea','BedroomAbvGr','KitchenAbvGr',
+                'TotRmsAbvGrd','Fireplaces',
+                'GarageArea','OpenPorchSF','PoolArea',
+                 'YrSold')
+heat <- train[,model_var]
+# HeatMap
+qplot(x=Var1, y=Var2, data=melt(cor(heat, use="p")), fill=value, geom="tile") +
+   scale_fill_gradient2(midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Correlation") +
+   theme_minimal()+ 
+   theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 8, hjust = 1))+
+   coord_fixed()+
+   theme(plot.title = element_text(hjust = 0.4))
+
+# Plot of high cor vals
+(p1 <- ggplot(train, aes(x=GrLivArea, y=SalePrice)) + 
+  geom_point(shape=1) +  
+  geom_smooth(method=lm , color="red", se=FALSE)+
+  ggtitle("Figure 8 Scatter plot of SalePrice and GrLivArea") +
+  theme(plot.title = element_text(hjust = 0.4)))
+
+(p2 <- ggplot(train, aes(x=TotalBsmtSF, y=SalePrice)) + 
+  geom_point(shape=1) +  
+  geom_smooth(method=lm , color="red", se=FALSE)+
+  ggtitle("Figure 9 Scatter plot of SalePrice and TotalBsmtSF") +
+  theme(plot.title = element_text(hjust = 0.4)))
+
+(p3 <- ggplot(train, aes(x=TotRmsAbvGrd, y=SalePrice)) + 
+  geom_point(shape=1) +  
+  geom_smooth(method=lm , color="red", se=FALSE)+
+  ggtitle("Figure 10 Scatter plot of SalePrice and TotRmsAbvGrd") +
+  theme(plot.title = element_text(hjust = 0.4)))
+
+(p4 <- ggplot(train, aes(x=GarageArea, y=SalePrice)) + 
+  geom_point(shape=1) +  
+  geom_smooth(method=lm , color="red", se=FALSE)+
+  ggtitle("Figure 11 Scatter plot of SalePrice and GarageArea") +
+  theme(plot.title = element_text(hjust = 0.4)))
 ```
+
+```{r}
+
+# Both work
+sort(sapply(df[,1:80], function(x) sum(is.na(x))), decreasing = T)
+sort(sapply(train, function(x) sum(is.na(x))), decreasing = T)
+
+#Check pool quality
+summary(df$PoolQC)
+table(df$PoolArea > 0, df$PoolQC, useNA = "ifany")
+# There are 13 houses with swimming pools and only 10 have pool quality data available.
+
+
+# Reassign 'None' for 'no pool' instead of NAs
+df[df$PoolArea == 0,]$PoolQC <- rep('None', 2906)
+
+# Now there are only three missing pool quality valueswhich can be predicted using rpart
+# Here is a list of variables which may be likely predictors for the swimmingpol quality.
+col.pred <-
+  c(
+  "YearBuilt",
+  "YearRemodAdd",
+  "PoolQC",
+  "PoolArea",
+  "WoodDeckSF",
+  "OpenPorchSF",
+  "EnclosedPorch",
+  "X3SsnPorch",
+  "ScreenPorch",
+  "ExterQual",
+  "ExterCond",
+  "YrSold",
+  "SaleType",
+  "SaleCondition"
+  )
+
+
+# Predict using rpart
+qlty.rpart <- rpart(
+  as.factor(PoolQC) ~ .,
+  data = df[!is.na(df$PoolQC), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+
+df$PoolQC[is.na(df$PoolQC)] <- predict(qlty.rpart,
+                                       df[is.na(df$PoolQC), col.pred],
+                                       type = "class")
+
+table(is.na(df$MiscFeature))
+df$MiscFeature[is.na(df$MiscFeature)] <- rep('None', 2814)
+table(is.na(df$Alley))
+df$Alley[is.na(df$Alley)] <- rep('None', 2721)
+table(is.na(df$Fence))
+summary(df$Fence)
+str(df$Fence)
+df$Fence[is.na(df$Fence)] <- rep('None', 2348)
+```
+
+```{r}
+train <- read.csv("~/dataScience/final/train.csv", stringsAsFactors = FALSE)
+train <- train[-which(train$GrLivArea > 4000),] #why is there a comma?
+sort(sapply(train, function(x) sum(is.na(x))), decreasing = T)
+
+# Recoding variables with NA values that are actually data points as highlighted by
+## reference: http://stackoverflow.com/questions/19379081/how-to-replace-na-values-in-a-table-for-selected-columns-data-frame-data-tab
+### recoding the train data
+table(train$Alley)
+train[c("Alley")][is.na(train[c("Alley")])] <- "NoAlleyAccess"
+table(train$Alley)
+
+table(train$BsmtQual)
+train[c("BsmtQual")][is.na(train[c("BsmtQual")])] <- "NoBasement"
+table(train$BsmtQual)
+
+table(train$BsmtCond)
+train[c("BsmtCond")][is.na(train[c("BsmtCond")])] <- "NoBasement"
+table(train$BsmtQual)
+
+table(train$BsmtExposure)
+train[c("BsmtExposure")][is.na(train[c("BsmtExposure")])] <- "NoBasement"
+table(train$BsmtExposure)
+
+table(train$BsmtFinType1)
+train[c("BsmtFinType1")][is.na(train[c("BsmtFinType1")])] <- "NoBasement"
+table(train$BsmtFinType1)
+
+table(train$BsmtFinType2)
+train[c("BsmtFinType2")][is.na(train[c("BsmtFinType2")])] <- "NoBasement"
+table(train$BsmtFinType2)
+
+table(train$GarageType)
+train[c("GarageType")][is.na(train[c("GarageType")])] <- "NoGarage"
+table(train$GarageType)
+
+table(train$GarageFinish)
+train[c("GarageFinish")][is.na(train[c("GarageFinish")])] <- "NoGarage"
+table(train$GarageFinish)
+
+table(train$GarageQual)
+train[c("GarageQual")][is.na(train[c("GarageQual")])] <- "NoGarage"
+table(train$GarageQual)
+
+table(train$GarageCond)
+train[c("GarageCond")][is.na(train[c("GarageCond")])] <- "NoGarage"
+table(train$GarageCond)
+
+table(train$PoolQC)
+train[c("PoolQC")][is.na(train[c("PoolQC")])] <- "NoPool"
+table(train$PoolQC)
+
+table(train$Fence)
+train[c("Fence")][is.na(train[c("Fence")])] <- "NoFence"
+table(train$Fence)
+
+table(train$MiscFeature)
+train[c("MiscFeature")][is.na(train[c("MiscFeature")])] <- "None"
+table(train$MiscFeature)
+
+table(train$FireplaceQu)
+train[c("FireplaceQu")][is.na(train[c("FireplaceQu")])] <- "NoFireplace"
+table(train$FireplaceQu)
+
+sort(sapply(train, function(x) sum(is.na(x))), decreasing = T)
+
+#check for zero variance predictors
+nzv_cols <- nearZeroVar(train)
+nzv_cols
+names(train[nzv_cols])
+#remove em
+if(length(nzv_cols) > 0) 
+    train <- train[, -nzv_cols]
+
+sort(sapply(train, function(x) sum(is.na(x))), decreasing = T)
+```
+
 
 We also want to divide categoric and numeric features
 ```{r}
