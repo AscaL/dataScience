@@ -6,15 +6,6 @@ output: html_notebook
 Project found on the [Kaggle Site](https://www.kaggle.com/c/house-prices-advanced-regression-techniques).
 
 ## Loading Libs and Data
-
-```{r}
-load.libraries <- c('ggplot2', 'stringr', 'Matrix', 'corrplot', 'xgboost', 'glmnet', 'e1071', 'dplyr', 'randomForest', 'Metrics', 'caret', 'scales')
-install.lib <- load.libraries[!load.libraries %in% installed.packages()]
-for(libs in install.lib) install.packages(libs, dependences = TRUE)
-sapply(load.libraries, require, character = TRUE)
-```
-
-
 ```{r}
 install.packages("tidyverse")
 install.packages("ggthemes", dependencies = T)
@@ -31,6 +22,10 @@ install.packages("corrplot", dependencies = T)
 install.packages("glmnet", dependencies = T)
 install.packages("rpart", dependencies = T)
 install.packages("repr", dependencies = T)
+install.packages("Amelia", dependencies = T)
+install.packages("mice", dependencies = T)
+install.packages("VIM", dependencies = T)
+install.packages("DescTools", dependencies = T)
 ```
 
 
@@ -40,6 +35,9 @@ library(tidyverse)
 library(ggthemes)
 library(rpart)
 library(reshape2)
+library(Amelia)
+library(mice)
+library(VIM)
 library(ggplot2) # for data visualization
 library(stringr) #extracting string patterns
 library(Matrix) # matrix transformations
@@ -53,18 +51,17 @@ library(scales) # plotting $$
 library(e1071) # skewness
 library(corrplot) # correlation plot
 library(repr)
+library(DescTools)
 ```
 
 
 Loading the data
 ```{r}
-test <- read.csv("~/dataScience/final/test.csv")
-train <- read.csv("~/dataScience/final/train.csv")
-# Test does not have SalePrice so we put it to NA for all
-test$SalePrice <- rep(NA, 1459)
-df <- rbind(train, test)
-#summary(df)
-head(df)
+test <- read.csv("~/dataScience/final/test.csv", stringsAsFactors = F)
+train <- read.csv("~/dataScience/final/train.csv", stringsAsFactors = F)
+df <- rbind(train[,!(names(train) %in% c("SalePrice"))],test)
+house_price_num<-train[, sapply(train, is.numeric)]
+house_price_cat<-train[, sapply(train, is.factor)]
 ```
 
 
@@ -73,24 +70,448 @@ head(df)
 First plot: SquareFeet vs Sale Price
 ```{r}
 ggplot(train) +  geom_point(aes(x = GrLivArea, y = SalePrice)) + theme_minimal()
+
+# Check for outliers on living area
 ggplot(train, aes(GrLivArea)) +
   geom_histogram(fill = 'light green', color = 'black') +
   theme_minimal()
 ```
 
 We can see that there are four outliers, let's remove them:
+TODO: DO THIS AFTER!!
 ```{r}
-train <- train[-which(train$GrLivArea > 4000),] #why is there a comma?
-df <- df[-which(df$GrLivArea > 4000),]
+##train <- train[-which(train$GrLivArea > 4000),] #why is there a comma?
+train <- train[-which(train$GrLivArea > 4000),]
 # No more outliers
 ggplot(train) +  geom_point(aes(x = GrLivArea, y = SalePrice)) + theme_minimal()
 ```
 
 We need to handle NA in our data
 ```{r}
+missmap(train[,1:80],
+        main = "Missing values in Housing Prices Dataset",
+        y.labels = NULL,
+        y.at = NULL)
+
+# List of NAs
+sort(colSums(sapply(train, is.na)), decreasing = T)
+
+cMiss = function(x){sum(is.na(x))}
+CM <- sort(apply(train,2,cMiss),decreasing=T)
+barplot(CM[CM!=0],
+        las=2,
+        cex.names=0.6,
+        ylab="Count",
+        ylim=c(0,3000),
+        horiz=F,
+        col="#AFC0CB",
+        main=paste(toString(sum(CM!=0)), "variables with missing values in dataset"))
+```
+
+Now we need to substitute NAs with values
+https://www.kaggle.com/clustersrus/house-prices-dealing-with-the-missing-data
+https://www.kaggle.com/bisaria/handling-missing-data/notebook
+```{r}
+# PoolQC: if NA -> No Pool
+train$PoolQC[is.na(train$PoolQC)] <- "NoPool"
+
+# MiscFeature: if NA -> None
+train$MiscFeature[is.na(train$MiscFeature)] <- "None"
+
+# Alley: if NA -> No Alley Access
+train$Alley[is.na(train$Alley)] <- "NoAlleyAccess"
+
+# Fence: if NA -> No Fence
+train$Fence[is.na(train$Fence)] <- "NoFence"
+
+# FireplaceQu: If NA -> No FirePlace
+train$FireplaceQu[is.na(train$FireplaceQu)] <- "NoFirePlace"
+
+# Garage: No area -> No Garage, as simple as that
+train$GarageYrBlt[train$GarageArea %in% c(0,NA) & is.na(train$GarageYrBlt)] <- "NoGarage"
+train$GarageFinish[train$GarageArea %in% c(0,NA) & is.na(train$GarageFinish)] <- "NoGarage"
+train$GarageQual[train$GarageArea %in% c(0,NA) & is.na(train$GarageQual)] <- "NoGarage"
+train$GarageCond[train$GarageArea %in% c(0,NA) & is.na(train$GarageCond)] <- "NoGarage"
+train$GarageType[train$GarageArea %in% c(0,NA) & is.na(train$GarageType)] <- "NoGarage"
+# Garage: If the area is 0 there can be no size for cars, reverse apply too. (look description)
+train$GarageCars[train$GarageArea %in% c(0,NA) & is.na(train$GarageCars)] <- 0 
+train$GarageArea[train$GarageCars %in% c(0,NA) & is.na(train$GarageArea)] <- 0
+
+# Basement: for starters, if the squarefeet is 0/NA we can't have a basement
+train$BsmtFullBath[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtFullBath)] <- 0
+train$BsmtHalfBath[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtHalfBath)] <- 0
+train$BsmtFinSF1[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtFinSF1)] <- 0
+train$BsmtFinSF2[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtFinSF2)] <- 0
+train$BsmtUnfSF[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtUnfSF)] <- 0
+train$TotalBsmtSF[train$TotalBsmtSF %in% c(0,NA) & is.na(train$TotalBsmtSF)] <- 0
+train$BsmtQual[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtQual)] <- "NoBasement"
+train$BsmtFinType1[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtFinType1)] <- "NoBasement"
+train$BsmtFinType2[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtFinType2)] <- "NoBasement"
+train$BsmtExposure[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtExposure)] <- "NoBasement"
+train$BsmtCond[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtCond)] <- "NoBasement"
+
+sort(colSums(sapply(train, is.na)), decreasing = T)
+
+CM <- sort(apply(train,2,cMiss),decreasing=T);
+barplot(CM[CM != 0], las = 2, cex.names = 0.6, ylab = "Count", ylim = c(0, 500), horiz = F,  col = "#AFC0CB", main =  paste(toString(sum(CM != 0)), "variables with missing values in dataset"))
+```
+```{r}
+# PoolQC: if NA -> No Pool
+test$PoolQC[is.na(test$PoolQC)] <- "NoPool"
+
+# MiscFeature: if NA -> None
+test$MiscFeature[is.na(test$MiscFeature)] <- "None"
+
+# Alley: if NA -> No Alley Access
+test$Alley[is.na(test$Alley)] <- "NoAlleyAccess"
+
+# Fence: if NA -> No Fence
+test$Fence[is.na(test$Fence)] <- "NoFence"
+
+# FireplaceQu: If NA -> No FirePlace
+test$FireplaceQu[is.na(test$FireplaceQu)] <- "NoFirePlace"
+
+# Garage: No area -> No Garage, as simple as that
+test$GarageYrBlt[test$GarageArea %in% c(0,NA) & is.na(test$GarageYrBlt)] <- "NoGarage"
+test$GarageFinish[test$GarageArea %in% c(0,NA) & is.na(test$GarageFinish)] <- "NoGarage"
+test$GarageQual[test$GarageArea %in% c(0,NA) & is.na(test$GarageQual)] <- "NoGarage"
+test$GarageCond[test$GarageArea %in% c(0,NA) & is.na(test$GarageCond)] <- "NoGarage"
+test$GarageType[test$GarageArea %in% c(0,NA) & is.na(test$GarageType)] <- "NoGarage"
+# Garage: If the area is 0 there can be no size for cars, reverse apply too. (look description)
+test$GarageCars[test$GarageArea %in% c(0,NA) & is.na(test$GarageCars)] <- 0 
+test$GarageArea[test$GarageCars %in% c(0,NA) & is.na(test$GarageArea)] <- 0
+
+# Basement: for starters, if the squarefeet is 0/NA we can't have a basement
+test$BsmtFullBath[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtFullBath)] <- 0
+test$BsmtHalfBath[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtHalfBath)] <- 0
+test$BsmtFinSF1[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtFinSF1)] <- 0
+test$BsmtFinSF2[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtFinSF2)] <- 0
+test$BsmtUnfSF[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtUnfSF)] <- 0
+test$TotalBsmtSF[test$TotalBsmtSF %in% c(0,NA) & is.na(test$TotalBsmtSF)] <- 0
+test$BsmtQual[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtQual)] <- "NoBasement"
+test$BsmtFinType1[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtFinType1)] <- "NoBasement"
+test$BsmtFinType2[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtFinType2)] <- "NoBasement"
+test$BsmtExposure[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtExposure)] <- "NoBasement"
+test$BsmtCond[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtCond)] <- "NoBasement"
+
+sort(colSums(sapply(test, is.na)), decreasing = T)
+
+CM <- sort(apply(test,2,cMiss),decreasing=T);
+barplot(CM[CM != 0], las = 2, cex.names = 0.6, ylab = "Count", ylim = c(0, 500), horiz = F,  col = "#AFC0CB", main =  paste(toString(sum(CM != 0)), "variables with missing values in dataset"))
+```
+
+
+We took care of most of the data, let's see how to deal with the remaining:
+```{r}
+# Handle MasVnrType and Area
+#table(train$MasVnrType, useNA = "ifany")
+#table(train$MasVnrArea, useNA = "ifany")
+# We will use the mode for type and area
+train$MasVnrType[is.na(train$MasVnrType)] <- "None"
+train$MasVnrArea[is.na(train$MasVnrArea)] <- 0
+
+# Handle MSZoning
+table(train$MSZoning, useNA = "ifany")
+# We will take the mode (most frequent) for all NA
+train$MSZoning[is.na(train$MSZoning)] <- "RL"
+
+# Basement
+MissBsmt = c('BsmtCond','BsmtExposure','BsmtQual','BsmtFinType2')
+train[!complete.cases(train[,names(train) %in% MissBsmt]),names(train) %in% names(train)[which(grepl("Bsmt",names(train)))]]
+# All basements with Exposure = NA are unfinished
+table(train$BsmtExposure, useNA = "ifany")
+train$BsmtExposure[is.na(train$BsmtExposure)] <- "No"
+# ALQ closest val to median
+train$BsmtFinType2[is.na(train$BsmtFinType2)] <- "ALQ"
+# BsmtQual is dependant to house style (TODO: why tho?) give the mode of bsmtQual based on housestyle
+train$HouseStyle[is.na(train$BsmtQual)]
+table(train$BsmtQual, useNA = "ifany")
+train$BsmtQual[is.na(train$BsmtQual) & train$HouseStyle == "2Story"] <- "Gd"
+train$BsmtQual[is.na(train$BsmtQual) & train$HouseStyle == "1.5Fin"] <- "TA"
+# BsmtCond
+(TableBsmtCond <- table(train$HouseStyle, train$BsmtCond))
+# We can give them TA since is the mode
+train$BsmtCond[is.na(train$BsmtCond)] <- "TA"
+
+# Utilities: Mode
+table(train$Utilities, useNA = "ifany")
+train$Utilities[is.na(train$Utilities) ] <- "AllPub"
+
+# Functional
+table(train$Functional, useNA = "ifany")
+train$Functional[is.na(train$Functional) ] <- "Typ"
+
+# Exterior1: Predict with rpart
+table(train$Exterior1st, useNA = "ifany")
+# Likely predictors
+col.pred <- c("BldgType", "HouseStyle", "OverallQual", "OverallCond", "YearBuilt", "YearRemodAdd", "RoofStyle", "RoofMatl", "Exterior1st", "Exterior2nd", "MasVnrType", "MasVnrArea", "ExterQual", "ExterCond")
+# Predict Exterior1st
+ext1.rpart <- rpart(
+  as.factor(Exterior1st) ~ .,
+  data = train[!is.na(train$Exterior1st), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+train$Exterior1st[is.na(train$Exterior1st)] <- as.character(predict(ext1.rpart, train[is.na(train$Exterior1st),col.pred], type = "class"))
+
+# Exterior2: Predict with rpart
+table(train$Exterior2nd, useNA = "ifany")
+ext2.rpart <- rpart(
+  as.factor(Exterior2nd) ~ .,
+  data = train[!is.na(train$Exterior2nd), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+train$Exterior2nd[is.na(train$Exterior2nd)] <- as.character(predict(ext2.rpart, train[is.na(train$Exterior2nd),col.pred], type = "class"))
+
+# Electrical: mode
+table(train$Electrical, useNA = "ifany")
+train$Electrical[is.na(train$Electrical) ] <- "SBrkr"
+
+# KitchenQual: Rpart
+table(train$KitchenQual, useNA = "ifany")
+col.pred <- c("BldgType", "HouseStyle", "OverallQual", "OverallCond", "YearBuilt", "YearRemodAdd", "KitchenQual")
+kit.rpart <- rpart(
+  as.factor(KitchenQual) ~ .,
+  data = train[!is.na(train$KitchenQual), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+train$KitchenQual[is.na(train$KitchenQual)] <- as.character(predict(kit.rpart, train[is.na(train$KitchenQual),col.pred], type = "class"))
+
+# SaleType: mode
+table(train$SaleType, useNA = "ifany")
+train$SaleType[is.na(train$SaleType) ] <- "WD"
+
+# GarageYrBlt: rpart
+table(train$GarageYrBlt, useNA = "ifany")
+col.pred <- c("GarageType", "GarageYrBlt", "GarageFinish", "GarageQual","GarageCond","YearBuilt", "GarageCars", "GarageArea")
+blt.rpart <- rpart(
+  as.factor(GarageYrBlt) ~ .,
+  data = train[!is.na(train$GarageYrBlt), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+train$GarageYrBlt[is.na(train$GarageYrBlt)] <- as.numeric(as.character(predict(blt.rpart, train[is.na(train$GarageYrBlt),col.pred], type = "class")))
+
+# GarageQual: mode
+table(train$GarageQual, useNA = "ifany")
+train$GarageQual[is.na(train$GarageQual) ] <- "TA"
+
+# GarageCond: mode
+table(train$GarageCond, useNA = "ifany")
+train$GarageCond[is.na(train$GarageCond) ] <- "TA"
+
+# GarageFinish: unfinished
+table(train$GarageFinish, useNA = "ifany")
+train$GarageFinish[is.na(train$GarageFinish)] <- "Unf"
+
+CM <- sort(apply(train,2,cMiss),decreasing=T);
+barplot(CM[CM != 0], las = 2, cex.names = 0.6, ylab = "Count", ylim = c(0, 500), horiz = F,  col = "#AFC0CB", main =  paste(toString(sum(CM != 0)), "variables with missing values in dataset"))
+```
+
+```{r}
+# Handle MasVnrType and Area
+#table(test$MasVnrType, useNA = "ifany")
+#table(test$MasVnrArea, useNA = "ifany")
+# We will use the mode for type and area
+test$MasVnrType[is.na(test$MasVnrType)] <- "None"
+test$MasVnrArea[is.na(test$MasVnrArea)] <- 0
+
+# Handle MSZoning
+table(test$MSZoning, useNA = "ifany")
+# We will take the mode (most frequent) for all NA
+test$MSZoning[is.na(test$MSZoning)] <- "RL"
+
+# Basement
+MissBsmt = c('BsmtCond','BsmtExposure','BsmtQual','BsmtFinType2')
+test[!complete.cases(test[,names(test) %in% MissBsmt]),names(test) %in% names(test)[which(grepl("Bsmt",names(test)))]]
+# All basements with Exposure = NA are unfinished
+table(test$BsmtExposure, useNA = "ifany")
+test$BsmtExposure[is.na(test$BsmtExposure)] <- "No"
+# ALQ closest val to median
+test$BsmtFinType2[is.na(test$BsmtFinType2)] <- "ALQ"
+# BsmtQual is dependant to house style (TODO: why tho?) give the mode of bsmtQual based on housestyle
+test$HouseStyle[is.na(test$BsmtQual)]
+table(test$BsmtQual, useNA = "ifany")
+test$BsmtQual[is.na(test$BsmtQual) & test$HouseStyle == "2Story"] <- "Gd"
+test$BsmtQual[is.na(test$BsmtQual) & test$HouseStyle == "1.5Fin"] <- "TA"
+# BsmtCond
+(TableBsmtCond <- table(test$HouseStyle, test$BsmtCond))
+# We can give them TA since is the mode
+test$BsmtCond[is.na(test$BsmtCond)] <- "TA"
+
+# Utilities: Mode
+table(test$Utilities, useNA = "ifany")
+test$Utilities[is.na(test$Utilities) ] <- "AllPub"
+
+# Functional
+table(test$Functional, useNA = "ifany")
+test$Functional[is.na(test$Functional) ] <- "Typ"
+
+# Exterior1: Predict with rpart
+table(test$Exterior1st, useNA = "ifany")
+# Likely predictors
+col.pred <- c("BldgType", "HouseStyle", "OverallQual", "OverallCond", "YearBuilt", "YearRemodAdd", "RoofStyle", "RoofMatl", "Exterior1st", "Exterior2nd", "MasVnrType", "MasVnrArea", "ExterQual", "ExterCond")
+# Predict Exterior1st
+ext1.rpart <- rpart(
+  as.factor(Exterior1st) ~ .,
+  data = test[!is.na(test$Exterior1st), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+test$Exterior1st[is.na(test$Exterior1st)] <- as.character(predict(ext1.rpart, test[is.na(test$Exterior1st),col.pred], type = "class"))
+
+# Exterior2: Predict with rpart
+table(test$Exterior2nd, useNA = "ifany")
+ext2.rpart <- rpart(
+  as.factor(Exterior2nd) ~ .,
+  data = test[!is.na(test$Exterior2nd), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+test$Exterior2nd[is.na(test$Exterior2nd)] <- as.character(predict(ext2.rpart, test[is.na(test$Exterior2nd),col.pred], type = "class"))
+
+# Electrical: mode
+table(test$Electrical, useNA = "ifany")
+test$Electrical[is.na(test$Electrical) ] <- "SBrkr"
+
+# KitchenQual: Rpart
+table(test$KitchenQual, useNA = "ifany")
+col.pred <- c("BldgType", "HouseStyle", "OverallQual", "OverallCond", "YearBuilt", "YearRemodAdd", "KitchenQual")
+kit.rpart <- rpart(
+  as.factor(KitchenQual) ~ .,
+  data = test[!is.na(test$KitchenQual), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+test$KitchenQual[is.na(test$KitchenQual)] <- as.character(predict(kit.rpart, test[is.na(test$KitchenQual),col.pred], type = "class"))
+
+# SaleType: mode
+table(test$SaleType, useNA = "ifany")
+test$SaleType[is.na(test$SaleType) ] <- "WD"
+
+# GarageYrBlt: rpart
+table(test$GarageYrBlt, useNA = "ifany")
+col.pred <- c("GarageType", "GarageYrBlt", "GarageFinish", "GarageQual","GarageCond","YearBuilt", "GarageCars", "GarageArea")
+blt.rpart <- rpart(
+  as.factor(GarageYrBlt) ~ .,
+  data = test[!is.na(test$GarageYrBlt), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+test$GarageYrBlt[is.na(test$GarageYrBlt)] <- as.numeric(as.character(predict(blt.rpart, test[is.na(test$GarageYrBlt),col.pred], type = "class")))
+
+# GarageQual: mode
+table(test$GarageQual, useNA = "ifany")
+test$GarageQual[is.na(test$GarageQual) ] <- "TA"
+
+# GarageCond: mode
+table(test$GarageCond, useNA = "ifany")
+test$GarageCond[is.na(test$GarageCond) ] <- "TA"
+
+# GarageFinish: unfinished
+table(test$GarageFinish, useNA = "ifany")
+test$GarageFinish[is.na(test$GarageFinish)] <- "Unf"
+
+CM <- sort(apply(test,2,cMiss),decreasing=T);
+barplot(CM[CM != 0], las = 2, cex.names = 0.6, ylab = "Count", ylim = c(0, 500), horiz = F,  col = "#AFC0CB", main =  paste(toString(sum(CM != 0)), "variables with missing values in dataset"))
+```
+
+
+Let's handle LotFrontage
+```{r}
+table(train$LotFrontage, useNA = "ifany")
+
+# Likely predictors
+col.pred <- c("MSSubClass", "MSZoning", "LotFrontage", "LotArea", "Street", "Alley", "LotShape", "LandContour", "LotConfig", "LandSlope", "BldgType", "HouseStyle", "YrSold", "SaleType", "SaleCondition")
+
+# Predict LotFrontage
+frntage.rpart <- rpart(
+  LotFrontage ~ .,
+  data = train[!is.na(train$LotFrontage), col.pred],
+  method = "anova",
+  na.action = na.omit
+  )
+
+# Let us plot the existing and imputed values and check if imputed values follow the same patten
+train.frontage <-
+  as.data.frame(rbind(cbind(rep(
+  "Existing", nrow(train[!is.na(train$LotFrontage), ])
+  ), train[!is.na(train$LotFrontage), "LotFrontage"]),
+  cbind(rep(
+  "Imputed", nrow(train[is.na(train$LotFrontage), ])
+  ),
+  ceiling(
+  predict(frntage.rpart, train[is.na(train$LotFrontage), col.pred])
+  ))))
+
+
+ggplot(train.frontage, aes (x = as.numeric(as.character(V2)), colour = V1)) +
+  geom_density() +
+  xlab("Lot Frontage") +
+  theme(legend.title = element_blank())
+
+train$LotFrontage[is.na(train$LotFrontage)] <- ceiling(predict(frntage.rpart, train[is.na(train$LotFrontage),col.pred]))
+
+sort(colSums(sapply(train, is.na)), decreasing = T)
+```
+```{r}
+table(test$LotFrontage, useNA = "ifany")
+
+# Likely predictors
+col.pred <- c("MSSubClass", "MSZoning", "LotFrontage", "LotArea", "Street", "Alley", "LotShape", "LandContour", "LotConfig", "LandSlope", "BldgType", "HouseStyle", "YrSold", "SaleType", "SaleCondition")
+
+# Predict LotFrontage
+frntage.rpart <- rpart(
+  LotFrontage ~ .,
+  data = test[!is.na(test$LotFrontage), col.pred],
+  method = "anova",
+  na.action = na.omit
+  )
+
+# Let us plot the existing and imputed values and check if imputed values follow the same patten
+test.frontage <-
+  as.data.frame(rbind(cbind(rep(
+  "Existing", nrow(test[!is.na(test$LotFrontage), ])
+  ), test[!is.na(test$LotFrontage), "LotFrontage"]),
+  cbind(rep(
+  "Imputed", nrow(test[is.na(test$LotFrontage), ])
+  ),
+  ceiling(
+  predict(frntage.rpart, test[is.na(test$LotFrontage), col.pred])
+  ))))
+
+
+ggplot(test.frontage, aes (x = as.numeric(as.character(V2)), colour = V1)) +
+  geom_density() +
+  xlab("Lot Frontage") +
+  theme(legend.title = element_blank())
+
+test$LotFrontage[is.na(test$LotFrontage)] <- ceiling(predict(frntage.rpart, test[is.na(test$LotFrontage),col.pred]))
+
+sort(colSums(sapply(test, is.na)), decreasing = T)
+```
+
+```{r}
+reg <- lm(SalePrice~OverallQual+GrLivArea+GarageCars+TotalBsmtSF, data = train)
+summary(reg)
+test$SalePrice <- predict(reg, newdata = test)
+test %>%
+  select(Id, SalePrice) %>%
+  write.csv(file = "prediction.csv", row.names = F)
+```
+
+
+THIS IS WHERE I AM, REST IS RANDOM TESTING!!!
+
+
+
+
+```{r}
 # See all NAs
 sort(colSums(sapply(train, is.na)), decreasing = T)
-sort(colSums(sapply(df, is.na)), decreasing = T)
+sort(colSums(sapply(train, is.na)), decreasing = T)
 # list rows of data that have missing values 
 missing <- train[!complete.cases(train),]
 #head(missing)
@@ -203,178 +624,15 @@ qplot(x=Var1, y=Var2, data=melt(cor(heat, use="p")), fill=value, geom="tile") +
 ```{r}
 
 # Both work
-sort(sapply(df[,1:80], function(x) sum(is.na(x))), decreasing = T)
+sort(sapply(train[,1:80], function(x) sum(is.na(x))), decreasing = T)
 sort(sapply(train, function(x) sum(is.na(x))), decreasing = T)
 
-#Check pool quality
-summary(df$PoolQC)
-table(df$PoolArea > 0, df$PoolQC, useNA = "ifany")
-# There are 13 houses with swimming pools and only 10 have pool quality data available.
-
-
-# Reassign 'None' for 'no pool' instead of NAs
-df[df$PoolArea == 0,]$PoolQC <- rep('None', 2906)
-
-# Now there are only three missing pool quality valueswhich can be predicted using rpart
-# Here is a list of variables which may be likely predictors for the swimmingpol quality.
-col.pred <-
-  c(
-  "YearBuilt",
-  "YearRemodAdd",
-  "PoolQC",
-  "PoolArea",
-  "WoodDeckSF",
-  "OpenPorchSF",
-  "EnclosedPorch",
-  "X3SsnPorch",
-  "ScreenPorch",
-  "ExterQual",
-  "ExterCond",
-  "YrSold",
-  "SaleType",
-  "SaleCondition"
-  )
-
-
-# Predict using rpart
-qlty.rpart <- rpart(
-  as.factor(PoolQC) ~ .,
-  data = df[!is.na(df$PoolQC), col.pred],
-  method = "class",
-  na.action = na.omit
-  )
-
-df$PoolQC[is.na(df$PoolQC)] <- predict(qlty.rpart,
-                                       df[is.na(df$PoolQC), col.pred],
-                                       type = "class")
-
-table(is.na(df$MiscFeature))
-df$MiscFeature[is.na(df$MiscFeature)] <- rep('None', 2814)
-table(is.na(df$Alley))
-df$Alley[is.na(df$Alley)] <- rep('None', 2721)
-table(is.na(df$Fence))
-summary(df$Fence)
-str(df$Fence)
-df$Fence[is.na(df$Fence)] <- rep('None', 2348)
-```
-
-```{r}
-train <- read.csv("~/dataScience/final/train.csv", stringsAsFactors = FALSE)
-train <- train[-which(train$GrLivArea > 4000),] #why is there a comma?
-sort(sapply(train, function(x) sum(is.na(x))), decreasing = T)
-
-# Recoding variables with NA values that are actually data points as highlighted by
-## reference: http://stackoverflow.com/questions/19379081/how-to-replace-na-values-in-a-table-for-selected-columns-data-frame-data-tab
-### recoding the train data
-table(train$Alley)
-train[c("Alley")][is.na(train[c("Alley")])] <- "NoAlleyAccess"
-table(train$Alley)
-
-table(train$BsmtQual)
-train[c("BsmtQual")][is.na(train[c("BsmtQual")])] <- "NoBasement"
-table(train$BsmtQual)
-
-table(train$BsmtCond)
-train[c("BsmtCond")][is.na(train[c("BsmtCond")])] <- "NoBasement"
-table(train$BsmtQual)
-
-table(train$BsmtExposure)
-train[c("BsmtExposure")][is.na(train[c("BsmtExposure")])] <- "NoBasement"
-table(train$BsmtExposure)
-
-table(train$BsmtFinType1)
-train[c("BsmtFinType1")][is.na(train[c("BsmtFinType1")])] <- "NoBasement"
-table(train$BsmtFinType1)
-
-table(train$BsmtFinType2)
-train[c("BsmtFinType2")][is.na(train[c("BsmtFinType2")])] <- "NoBasement"
-table(train$BsmtFinType2)
-
-table(train$GarageType)
-train[c("GarageType")][is.na(train[c("GarageType")])] <- "NoGarage"
-table(train$GarageType)
-
-table(train$GarageFinish)
-train[c("GarageFinish")][is.na(train[c("GarageFinish")])] <- "NoGarage"
-table(train$GarageFinish)
-
-table(train$GarageQual)
-train[c("GarageQual")][is.na(train[c("GarageQual")])] <- "NoGarage"
-table(train$GarageQual)
-
-table(train$GarageCond)
-train[c("GarageCond")][is.na(train[c("GarageCond")])] <- "NoGarage"
-table(train$GarageCond)
-
-table(train$PoolQC)
-train[c("PoolQC")][is.na(train[c("PoolQC")])] <- "NoPool"
-table(train$PoolQC)
-
-table(train$Fence)
-train[c("Fence")][is.na(train[c("Fence")])] <- "NoFence"
-table(train$Fence)
-
-table(train$MiscFeature)
-train[c("MiscFeature")][is.na(train[c("MiscFeature")])] <- "None"
-table(train$MiscFeature)
-
-table(train$FireplaceQu)
-train[c("FireplaceQu")][is.na(train[c("FireplaceQu")])] <- "NoFireplace"
-table(train$FireplaceQu)
-
-sort(sapply(train, function(x) sum(is.na(x))), decreasing = T)
-
-#check for zero variance predictors
-nzv_cols <- nearZeroVar(train)
-nzv_cols
-names(train[nzv_cols])
-#remove em
-if(length(nzv_cols) > 0) 
-    train <- train[, -nzv_cols]
-
-sort(sapply(train, function(x) sum(is.na(x))), decreasing = T)
 ```
 
 
-We also want to divide categoric and numeric features
-```{r}
-numTrain <- names(which(sapply(train, is.numeric)))
-catTrain <- names(which(sapply(train, is.character)))
-```
-
-
-```{r}
-trainNum <- train %>%
-  select_if(is.numeric)
-```
-
-```{r}
-library(reshape2)
-trainNum %>%
-  cor() %>%
-  melt() %>%
-  ggplot() +
-  geom_tile(aes(x = Var1, y = Var2, fill = value)) + theme_minimal()
-```
-
-Remove missing values
 ```{r}
 colSums(is.na(train))
 train_mean <- colMeans(train, na.rm = T)
 train <- replace_na(train, replace = as.list(train_mean))
 colSums(is.na(train))
-
-# Plot GrLivArea vs SalePrice
-ggplot(train) +  geom_point(aes(y = SalePrice, x = GrLivArea))
-# Remove outliers
-train <- train[-which(train$GrLivArea > 4000),]
-ggplot(train) +  geom_point(aes(y = SalePrice, x = GrLivArea))
-# reg
-#train$SalePrice <- log(train$SalePrice)
-reg <- lm(SalePrice ~ GrLivArea, data = train)
-summary(reg)
-test$SalePrice <- predict(reg, newdata = test)
-test %>%
-  select(Id, SalePrice) %>%
-  write.csv(file = "prediction.csv", row.names = F)
 ```
