@@ -22,10 +22,12 @@ install.packages("corrplot", dependencies = T)
 install.packages("glmnet", dependencies = T)
 install.packages("rpart", dependencies = T)
 install.packages("repr", dependencies = T)
-install.packages("Amelia", dependencies = T)
+install.packages("Amelia")
 install.packages("mice", dependencies = T)
 install.packages("VIM", dependencies = T)
 install.packages("DescTools", dependencies = T)
+install.packages("tm")
+install.packages("naivebayes")
 ```
 
 
@@ -491,6 +493,21 @@ ggplot(test.frontage, aes (x = as.numeric(as.character(V2)), colour = V1)) +
 test$LotFrontage[is.na(test$LotFrontage)] <- ceiling(predict(frntage.rpart, test[is.na(test$LotFrontage),col.pred]))
 
 sort(colSums(sapply(test, is.na)), decreasing = T)
+```
+
+
+
+```{r}
+cor(house_price_num)
+ncol(train)
+ncol(house_price_num)
+
+as.numeric(as.factor(train$Functional))
+t <- train - house_price_num 
+
+a<-mutate_all(train,as.factor)
+b<-mutate_all(a,as.numeric)
+cor(b)
 ```
 
 ```{r}

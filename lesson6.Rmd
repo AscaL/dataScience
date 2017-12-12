@@ -1,0 +1,74 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+install.packages("tm", dependencies = T)
+library(tm)
+```
+
+
+Classifier to decide if is ham (ok) or spam
+```{r}
+sms <- read.csv("~/dataScience/sms_spam.csv")
+str(sms)
+head(sms)
+summary(sms)
+(acc = 4827/nrow(sms))
+```
+
+convert in vector of features
+```{r}
+vs <- VectorSource(sms$text)
+corp <- Corpus(vs)
+inspect(corp[1:5])
+dtm <- DocumentTermMatrix(corp)
+dtm <- removeSparseTerms(dtm, 0.8)
+inspect(dtm)
+# num to categorical
+data <- as.data.frame(as.matrix(dtm))
+data %>%
+  mutate_all(sign) %>%
+  mutate_all(as.factor)
+data$label <- as.factor(sms$type)
+head(data)
+```
+
+```{r}
+library(reshape2)
+library(tidyverse)
+library(ggplot2)
+data %>%
+  melt()
+data %>%
+  melt(ids = label) %>%
+  ggplot() +
+  geom_col(aes(x = variable, y = value, fill = label), position = position_dodge()) +
+  theme(axis.text.x = element_text(angle=90))
+```
+```{r}
+library(naivebayes)
+library(caret)
+nb <- naive_bayes(x = select(data, -label), y = data$label)
+nb$tables
+data$pred <- predict(nb, newdata = data)
+summary(data$pred)
+count(data, label, pred)
+table(data$label, data$pred)
+confusionMatrix(data$label, data$pred)
+```
+
+```{r}
+# training
+library(caTools)
+idx <- sample.split(data$label, SplitRatio = 0.5)
+train <- data[idx,]
+test <- data[!idx,]
+nb <- naive_bayes(select(train, -label), train$label, laplace = 1)
+#nb$tables
+# pred
+test$pred <- predict(nb, newdata = test)
+confusionMatrix(test$label, test$pred)
+```
+
