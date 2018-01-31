@@ -1,0 +1,32 @@
+---
+title: "LP in R"
+output: html_notebook
+---
+
+```{r}
+library(lpSolve)
+?lp
+cf <- c(170, 650)
+A <- matrix(0, nrow = 3, ncol = 2)
+A[1, 1] <- -1
+A[2, 2] <- -1
+A[3, ] <- c(80, 350)
+b <- c(-3, -2, 1020)
+lp("max", cf, A, "<=", b)
+sol$objval
+sol$solution
+```
+
+```{r}
+cf <- c(10, 15, 20)
+A <- matrix(0, nrow = 4, ncol = 3)
+A[1, 1] <- -1 
+A[2, 2] <- -1 
+A[3, 3] <- 1
+A[4, ] <- c(200, 350, 450)
+b <- c(-1, -2, 2, 2000)
+sol <- lp("max", cf, A, "<=", b)
+sol$solution
+sol$objval
+```
+

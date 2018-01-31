@@ -5,13 +5,15 @@ output: html_notebook
 
 ```{r}
 library(tidyverse)
-wine = read.csv("~/Desktop/dataScience/wine.csv")
-(wine = read.csv("~/Desktop/dataScience/wine.csv"))
+wine = read.csv("~/dataScience/wine.csv")
 ggplot(data = wine) + geom_point(mapping = aes(x = AGST, y = Price))
 ggplot(data = wine) + geom_point(mapping = aes(x = HarvestRain, y = Price))
 
 
 x = lm(Price ~ HarvestRain + AGST + WinterRain + Age + FrancePop, data = wine)
+summary(x)
+
+x = lm(Price ~ ., data = wine)
 summary(x)
 ```
 Let's see price vs AGST & HarvestRain

@@ -1,0 +1,842 @@
+---
+title: "Final Project: House Prices: Advanced Regression Techniques"
+output: html_notebook
+---
+
+Project found on the [Kaggle Site](https://www.kaggle.com/c/house-prices-advanced-regression-techniques).
+
+## Loading Libs and Data
+```{r}
+# install.packages("tidyverse")
+# install.packages("ggthemes", dependencies = T)
+# install.packages("reshape2", dependencies = T)
+# install.packages("Matrix", dependencies = T)
+# install.packages("xgboost", dependencies = T)
+# install.packages("Metrics", dependencies = T)
+# install.packages("randomForest", dependencies = T)
+# install.packages("dplyr", dependencies = T)
+# install.packages("caret", dependencies = T)
+# install.packages("scales", dependencies = T)
+# install.packages("e1071", dependencies = T)
+# install.packages("corrplot", dependencies = T)
+# install.packages("glmnet", dependencies = T)
+# install.packages("rpart", dependencies = T)
+# install.packages("repr", dependencies = T)
+# install.packages("Amelia", dependencies = T)
+# install.packages("mice", dependencies = T)
+# install.packages("VIM", dependencies = T)
+# install.packages("DescTools", dependencies = T)
+# install.packages("doMC", dependencies = T)
+```
+
+Loading Libs
+```{r}
+library(tidyverse)
+library(caTools) # data splitting tools
+# library(ggthemes)
+library(rpart)
+library(reshape2)
+#library(Amelia)
+# library(mice)
+# library(VIM)
+# library(ggplot2) # for data visualization
+# library(stringr) #extracting string patterns
+# library(Matrix) # matrix transformations
+library(glmnet) # ridge, lasso & elastinet
+library(xgboost) # gbm
+# library(randomForest)
+library(Metrics) # rmse
+# library(dplyr) # load this in last so plyr doens't overlap it
+library(caret) # one hot encoding
+# library(scales) # plotting $$
+# library(e1071) # skewness
+# library(corrplot) # correlation plot
+# library(repr)
+# library(DescTools)
+library(iterators)
+library(parallel)
+library(doMC)
+```
+
+
+# Load and split data
+```{r}
+# load data
+
+train <- read.csv("./train.csv", stringsAsFactors = F) # keeps strings features as strings
+test <- read.csv("./test.csv", stringsAsFactors = F) # use this for submitting purposes
+traintot <- read.csv("./train.csv", stringsAsFactors = F) # keeps strings features as strings
+# test <- read.csv("./test.csv", stringsAsFactors = F) # use this for submitting purposes
+
+sum(is.na(train$SalePrice))
+sum(is.na(traintot$SalePrice))
+
+### split data for testing purposes
+set.seed(1) # might want to remove this during testing
+partition <- createDataPartition(y=traintot$SalePrice, p=.8, list=F)
+train <- traintot[partition,]
+test <- traintot[-partition,]
+
+sum(is.na(test$SalePrice))
+```
+
+
+## Tidying Data
+
+First plot: SquareFeet vs Sale Price
+```{r}
+# ggplot(train) +  geom_point(aes(x = GrLivArea, y = SalePrice)) + theme_minimal()
+# 
+# # Check for outliers on living area
+# ggplot(train, aes(GrLivArea)) +
+#   geom_histogram(fill = 'light green', color = 'black') +
+#   theme_minimal()
+```
+
+We can see that there are four outliers, let's remove them:
+```{r}
+# train <- train[-which(train$GrLivArea > 4000),]
+# No more outliers
+
+# ggplot(train) +  geom_point(aes(x = GrLivArea, y = SalePrice)) + theme_minimal()
+```
+
+Cheby
+```{r}
+# # cheby for outliers removal
+# k95 = sqrt(100/95) # k constants for inequality
+# k99 = sqrt(100/99)
+# k80 = sqrt(100/80)
+# k50 = sqrt(100/50)
+# k25 = sqrt(100/25)
+
+# houses <- train
+# grlivsv <- sd(houses$GrLivArea) # standard deviation
+# grlivmean <- mean(houses$GrLivArea) # mean 
+# discol <- abs(houses$GrLivArea - grlivmean) # make sure we have positive values in the column
+# 
+# newhouses <- houses
+# newhouses$discol <- discol # add new column
+# 
+# # get outliers based on the inequality
+# outliersk80 <- newhouses[which(newhouses$discol > k80 * grlivsv),]
+# outliersk99 <- newhouses[which(newhouses$discol > k99 * grlivsv),]
+# outliersk50 <- newhouses[which(newhouses$discol > k50 * grlivsv),]
+# outliersk25 <- newhouses[which(newhouses$discol > k25 * grlivsv),]
+# 
+# # print some stuff
+# # head(outliers)
+# head(newhouses)
+# print(paste("outk99", nrow(outliersk99)))
+# print(paste("outk80", nrow(outliersk80)))
+# print(paste("outk50", nrow(outliersk50)))
+# print(paste("outk25", nrow(outliersk25)))
+
+# # plot outlier distributions
+# ggplot(outliersk25, aes(GrLivArea)) +
+#   geom_histogram(fill = 'light green', color = 'black') +
+#   theme_minimal()
+# ggplot(outliersk50, aes(GrLivArea)) +
+#   geom_histogram(fill = 'light green', color = 'black') +
+#   theme_minimal()
+# ggplot(outliersk80, aes(GrLivArea)) +
+#   geom_histogram(fill = 'light green', color = 'black') +
+#   theme_minimal()
+# ggplot(outliersk99, aes(GrLivArea)) +
+#   geom_histogram(fill = 'light green', color = 'black') +
+#   theme_minimal()
+```
+
+Cheby
+```{r}
+### chebyshev inequality for outlier removal
+# chebyshev <- function(df, Col, k) {
+#   k <- sqrt(100/k) # inequality constant
+#   sd <- sd(df[,Col]) # Col standard deviation from given data frame
+#   mean <- mean(df[,Col]) # Col mean value from given data frame
+#   coldis <- abs(df[,Col] - mean) # make sure we have positive values in the column
+# 
+#   # use df to save data permanently
+#   newdf <- df
+#   newdf$coldis <- coldis
+# 
+#   # compute outliers using Chebyshev
+#   outliers <- newdf[which(newdf$coldis > k * sd),]
+#   colnames(outliers)[ncol(outliers)] <- paste(Col, "Distance", sep = "") # rename column
+# 
+#   # localenv <- environment() # needed, gg plot sucks
+#   ggplot(outliers, aes_string(Col)) +
+#     geom_histogram(fill = 'light green', color = 'black') +
+#     theme_minimal()
+# }
+# 
+# ### quick test
+# k <- 80
+# chebyshev(houses, "GrLivArea", k)
+# 
+# ### grab only numeric columns
+# # cols <- houses %>%
+# #   select_if(is.numeric) %>%
+# #   colnames()
+# 
+# ### plot all outliers using given constant k
+# # k = 80
+# # for(c in cols){
+# #   print(chebyshev(houses, c, k))
+# # }
+```
+
+
+We need to handle NA in our data
+```{r}
+# replace NA values with meaningful ones
+# test <- train
+# # head(test)
+# t <- train %>%
+#   replace_na(list(PoolQC = "NoPool")) %>%
+#   replace_na(list(MiscFeature = "None")) %>%
+#   replace_na(list(Alley = "NoAlleyAccess")) %>%
+#   replace_na(list(Fence = "NoFence")) %>%
+#   replace_na(list(FireplaceQu = "NoFireplace"))
+# 
+# ### cleanup function, can use a list of comparators as well
+# cleanup <- function(df, col, condition) {
+#   
+#   # change value according to variable type
+#   if (is.numeric(col)) value <- 0
+#   else value <- paste("No", col, sep = "")
+# 
+#   # either select rows using a condition on another variable or not
+#   if (missing(condition)) df[,col][is.na(df[,col])] <- value
+#   else df[,col][is.na(df[,col]) & condition] <- value
+#   
+#   return(df)
+# }
+# 
+# # couple of tests here
+# t <- cleanup(test, "PoolQC")
+# t$PoolQC
+
+# t <- cleanup(test, "GarageYrBlt", train$GarageArea %in% c(0,NA))
+# t$GarageYrBlt
+
+# train$GarageYrBlt[train$GarageArea %in% c(0,NA) & is.na(train$GarageYrBlt)] <- "NoGarage"
+```
+
+
+Now we need to substitute NAs with values
+https://www.kaggle.com/clustersrus/house-prices-dealing-with-the-missing-data
+https://www.kaggle.com/bisaria/handling-missing-data/notebook
+```{r}
+# train <- select(train, -Id)
+# test <- select(test, -Id)
+
+cMiss = function(x){sum(is.na(x))}
+CM <- sort(apply(train,2,cMiss),decreasing=T)
+# barplot(CM[CM != 0], las = 2, cex.names = 0.6, ylab = "Count", ylim = c(0, 1500), horiz = F,  col = "#AFC0CB", main =  paste(toString(sum(CM != 0)), "variables with missing values in dataset"))
+
+# PoolQC: if NA -> No Pool
+train$PoolQC[is.na(train$PoolQC)] <- "NoPool"
+
+# MiscFeature: if NA -> None
+train$MiscFeature[is.na(train$MiscFeature)] <- "None"
+
+# Alley: if NA -> No Alley Access
+train$Alley[is.na(train$Alley)] <- "NoAlleyAccess"
+
+# Fence: if NA -> No Fence
+train$Fence[is.na(train$Fence)] <- "NoFence"
+
+# FireplaceQu: If NA -> No FirePlace
+train$FireplaceQu[is.na(train$FireplaceQu)] <- "NoFirePlace"
+
+# Garage: No area -> No Garage, as simple as that
+train$GarageYrBlt[train$GarageArea %in% c(0,NA) & is.na(train$GarageYrBlt)] <- "NoGarage"
+train$GarageFinish[train$GarageArea %in% c(0,NA) & is.na(train$GarageFinish)] <- "NoGarage"
+train$GarageQual[train$GarageArea %in% c(0,NA) & is.na(train$GarageQual)] <- "NoGarage"
+train$GarageCond[train$GarageArea %in% c(0,NA) & is.na(train$GarageCond)] <- "NoGarage"
+train$GarageType[train$GarageArea %in% c(0,NA) & is.na(train$GarageType)] <- "NoGarage"
+# Garage: If the area is 0 there can be no size for cars, reverse apply too. (look description)
+train$GarageCars[train$GarageArea %in% c(0,NA) & is.na(train$GarageCars)] <- 0 
+train$GarageArea[train$GarageCars %in% c(0,NA) & is.na(train$GarageArea)] <- 0
+
+# Basement: for starters, if the squarefeet is 0/NA we can't have a basement
+train$BsmtFullBath[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtFullBath)] <- 0
+train$BsmtHalfBath[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtHalfBath)] <- 0
+train$BsmtFinSF1[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtFinSF1)] <- 0
+train$BsmtFinSF2[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtFinSF2)] <- 0
+train$BsmtUnfSF[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtUnfSF)] <- 0
+train$TotalBsmtSF[train$TotalBsmtSF %in% c(0,NA) & is.na(train$TotalBsmtSF)] <- 0
+train$BsmtQual[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtQual)] <- "NoBasement"
+train$BsmtFinType1[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtFinType1)] <- "NoBasement"
+train$BsmtFinType2[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtFinType2)] <- "NoBasement"
+train$BsmtExposure[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtExposure)] <- "NoBasement"
+train$BsmtCond[train$TotalBsmtSF %in% c(0,NA) & is.na(train$BsmtCond)] <- "NoBasement"
+
+sort(colSums(sapply(train, is.na)), decreasing = T)
+
+CM <- sort(apply(train,2,cMiss),decreasing=T);
+barplot(CM[CM != 0], las = 2, cex.names = 0.6, ylab = "Count", ylim = c(0, 500), horiz = F,  col = "#AFC0CB", main =  paste(toString(sum(CM != 0)), "variables with missing values in dataset"))
+```
+```{r}
+# PoolQC: if NA -> No Pool
+test$PoolQC[is.na(test$PoolQC)] <- "NoPool"
+
+# MiscFeature: if NA -> None
+test$MiscFeature[is.na(test$MiscFeature)] <- "None"
+
+# Alley: if NA -> No Alley Access
+test$Alley[is.na(test$Alley)] <- "NoAlleyAccess"
+
+# Fence: if NA -> No Fence
+test$Fence[is.na(test$Fence)] <- "NoFence"
+
+# FireplaceQu: If NA -> No FirePlace
+test$FireplaceQu[is.na(test$FireplaceQu)] <- "NoFirePlace"
+
+# Garage: No area -> No Garage, as simple as that
+test$GarageYrBlt[test$GarageArea %in% c(0,NA) & is.na(test$GarageYrBlt)] <- "NoGarage"
+test$GarageFinish[test$GarageArea %in% c(0,NA) & is.na(test$GarageFinish)] <- "NoGarage"
+test$GarageQual[test$GarageArea %in% c(0,NA) & is.na(test$GarageQual)] <- "NoGarage"
+test$GarageCond[test$GarageArea %in% c(0,NA) & is.na(test$GarageCond)] <- "NoGarage"
+test$GarageType[test$GarageArea %in% c(0,NA) & is.na(test$GarageType)] <- "NoGarage"
+# Garage: If the area is 0 there can be no size for cars, reverse apply too. (look description)
+test$GarageCars[test$GarageArea %in% c(0,NA) & is.na(test$GarageCars)] <- 0 
+test$GarageArea[test$GarageCars %in% c(0,NA) & is.na(test$GarageArea)] <- 0
+
+# Basement: for starters, if the squarefeet is 0/NA we can't have a basement
+test$BsmtFullBath[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtFullBath)] <- 0
+test$BsmtHalfBath[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtHalfBath)] <- 0
+test$BsmtFinSF1[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtFinSF1)] <- 0
+test$BsmtFinSF2[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtFinSF2)] <- 0
+test$BsmtUnfSF[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtUnfSF)] <- 0
+test$TotalBsmtSF[test$TotalBsmtSF %in% c(0,NA) & is.na(test$TotalBsmtSF)] <- 0
+test$BsmtQual[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtQual)] <- "NoBasement"
+test$BsmtFinType1[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtFinType1)] <- "NoBasement"
+test$BsmtFinType2[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtFinType2)] <- "NoBasement"
+test$BsmtExposure[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtExposure)] <- "NoBasement"
+test$BsmtCond[test$TotalBsmtSF %in% c(0,NA) & is.na(test$BsmtCond)] <- "NoBasement"
+
+sort(colSums(sapply(test, is.na)), decreasing = T)
+
+CM <- sort(apply(test,2,cMiss),decreasing=T);
+barplot(CM[CM != 0], las = 2, cex.names = 0.6, ylab = "Count", ylim = c(0, 500), horiz = F,  col = "#AFC0CB", main =  paste(toString(sum(CM != 0)), "variables with missing values in dataset"))
+```
+
+
+We took care of most of the data, let's see how to deal with the remaining:
+```{r}
+# Handle MasVnrType and Area: Mode
+train$MasVnrType[is.na(train$MasVnrType)] <- "None"
+train$MasVnrArea[is.na(train$MasVnrArea)] <- 0
+
+# Handle MSZoning: Mode
+train$MSZoning[is.na(train$MSZoning)] <- "RL"
+
+# Basement
+MissBsmt = c('BsmtCond','BsmtExposure','BsmtQual','BsmtFinType2')
+train[!complete.cases(train[,names(train) %in% MissBsmt]),names(train) %in% names(train)[which(grepl("Bsmt",names(train)))]]
+# All basements with Exposure = NA are unfinished
+train$BsmtExposure[is.na(train$BsmtExposure)] <- "No"
+# ALQ closest val to median
+train$BsmtFinType2[is.na(train$BsmtFinType2)] <- "ALQ"
+# BsmtQual is dependant to house style (TODO: why tho?) give the mode of bsmtQual based on housestyle
+train$HouseStyle[is.na(train$BsmtQual)]
+train$BsmtQual[is.na(train$BsmtQual) & train$HouseStyle == "2Story"] <- "Gd"
+train$BsmtQual[is.na(train$BsmtQual) & train$HouseStyle == "1.5Fin"] <- "TA"
+# BsmtCond: Mode
+train$BsmtCond[is.na(train$BsmtCond)] <- "TA"
+
+# Utilities: Mode
+train$Utilities[is.na(train$Utilities) ] <- "AllPub"
+
+# Functional
+train$Functional[is.na(train$Functional) ] <- "Typ"
+
+# Exterior1: Predict with rpart
+# Likely predictors
+col.pred <- c("BldgType", "HouseStyle", "OverallQual", "OverallCond", "YearBuilt", "YearRemodAdd", "RoofStyle", "RoofMatl", "Exterior1st", "Exterior2nd", "MasVnrType", "MasVnrArea", "ExterQual", "ExterCond")
+# Predict Exterior1st
+ext1.rpart <- rpart(
+  as.factor(Exterior1st) ~ .,
+  data = train[!is.na(train$Exterior1st), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+train$Exterior1st[is.na(train$Exterior1st)] <- as.character(predict(ext1.rpart, train[is.na(train$Exterior1st),col.pred], type = "class"))
+
+# Exterior2: Predict with rpart
+ext2.rpart <- rpart(
+  as.factor(Exterior2nd) ~ .,
+  data = train[!is.na(train$Exterior2nd), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+train$Exterior2nd[is.na(train$Exterior2nd)] <- as.character(predict(ext2.rpart, train[is.na(train$Exterior2nd),col.pred], type = "class"))
+
+# Electrical: mode
+train$Electrical[is.na(train$Electrical) ] <- "SBrkr"
+
+# KitchenQual: Rpart
+col.pred <- c("BldgType", "HouseStyle", "OverallQual", "OverallCond", "YearBuilt", "YearRemodAdd", "KitchenQual")
+kit.rpart <- rpart(
+  as.factor(KitchenQual) ~ .,
+  data = train[!is.na(train$KitchenQual), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+train$KitchenQual[is.na(train$KitchenQual)] <- as.character(predict(kit.rpart, train[is.na(train$KitchenQual),col.pred], type = "class"))
+
+# SaleType: mode
+train$SaleType[is.na(train$SaleType) ] <- "WD"
+
+# GarageYrBlt: rpart
+col.pred <- c("GarageType", "GarageYrBlt", "GarageFinish", "GarageQual","GarageCond","YearBuilt", "GarageCars", "GarageArea")
+blt.rpart <- rpart(
+  as.factor(GarageYrBlt) ~ .,
+  data = train[!is.na(train$GarageYrBlt), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+train$GarageYrBlt[is.na(train$GarageYrBlt)] <- as.numeric(as.character(predict(blt.rpart, train[is.na(train$GarageYrBlt),col.pred], type = "class")))
+
+# GarageQual: mode
+train$GarageQual[is.na(train$GarageQual) ] <- "TA"
+
+# GarageCond: mode
+train$GarageCond[is.na(train$GarageCond) ] <- "TA"
+
+# GarageFinish: unfinished
+train$GarageFinish[is.na(train$GarageFinish)] <- "Unf"
+
+CM <- sort(apply(train,2,cMiss),decreasing=T);
+barplot(CM[CM != 0], las = 2, cex.names = 0.6, ylab = "Count", ylim = c(0, 500), horiz = F,  col = "#AFC0CB", main =  paste(toString(sum(CM != 0)), "variables with missing values in dataset"))
+```
+
+```{r}
+# Handle MasVnrType and Area
+# We will use the mode for type and area
+test$MasVnrType[is.na(test$MasVnrType)] <- "None"
+test$MasVnrArea[is.na(test$MasVnrArea)] <- 0
+
+# Handle MSZoning
+# We will take the mode (most frequent) for all NA
+test$MSZoning[is.na(test$MSZoning)] <- "RL"
+
+# Basement
+MissBsmt = c('BsmtCond','BsmtExposure','BsmtQual','BsmtFinType2')
+test[!complete.cases(test[,names(test) %in% MissBsmt]),names(test) %in% names(test)[which(grepl("Bsmt",names(test)))]]
+# All basements with Exposure = NA are unfinished
+test$BsmtExposure[is.na(test$BsmtExposure)] <- "No"
+# ALQ closest val to median
+test$BsmtFinType2[is.na(test$BsmtFinType2)] <- "ALQ"
+# BsmtQual is dependant to house style (TODO: why tho?) give the mode of bsmtQual based on housestyle
+test$HouseStyle[is.na(test$BsmtQual)]
+table(test$BsmtQual, useNA = "ifany")
+test$BsmtQual[is.na(test$BsmtQual) & test$HouseStyle == "2Story"] <- "Gd"
+test$BsmtQual[is.na(test$BsmtQual) & test$HouseStyle == "1.5Fin"] <- "TA"
+# BsmtCond
+(TableBsmtCond <- table(test$HouseStyle, test$BsmtCond))
+# We can give them TA since is the mode
+test$BsmtCond[is.na(test$BsmtCond)] <- "TA"
+
+# Utilities: Mode
+test$Utilities[is.na(test$Utilities) ] <- "AllPub"
+
+# Functional
+test$Functional[is.na(test$Functional) ] <- "Typ"
+
+# Exterior1: Predict with rpart
+# Likely predictors
+col.pred <- c("BldgType", "HouseStyle", "OverallQual", "OverallCond", "YearBuilt", "YearRemodAdd", "RoofStyle", "RoofMatl", "Exterior1st", "Exterior2nd", "MasVnrType", "MasVnrArea", "ExterQual", "ExterCond")
+# Predict Exterior1st
+ext1.rpart <- rpart(
+  as.factor(Exterior1st) ~ .,
+  data = test[!is.na(test$Exterior1st), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+test$Exterior1st[is.na(test$Exterior1st)] <- as.character(predict(ext1.rpart, test[is.na(test$Exterior1st),col.pred], type = "class"))
+
+# Exterior2: Predict with rpart
+ext2.rpart <- rpart(
+  as.factor(Exterior2nd) ~ .,
+  data = test[!is.na(test$Exterior2nd), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+test$Exterior2nd[is.na(test$Exterior2nd)] <- as.character(predict(ext2.rpart, test[is.na(test$Exterior2nd),col.pred], type = "class"))
+
+# Electrical: mode
+test$Electrical[is.na(test$Electrical) ] <- "SBrkr"
+
+# KitchenQual: Rpart
+table(test$KitchenQual, useNA = "ifany")
+col.pred <- c("BldgType", "HouseStyle", "OverallQual", "OverallCond", "YearBuilt", "YearRemodAdd", "KitchenQual")
+kit.rpart <- rpart(
+  as.factor(KitchenQual) ~ .,
+  data = test[!is.na(test$KitchenQual), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+test$KitchenQual[is.na(test$KitchenQual)] <- as.character(predict(kit.rpart, test[is.na(test$KitchenQual),col.pred], type = "class"))
+
+# SaleType: mode
+test$SaleType[is.na(test$SaleType) ] <- "WD"
+
+# GarageYrBlt: rpart
+col.pred <- c("GarageType", "GarageYrBlt", "GarageFinish", "GarageQual","GarageCond","YearBuilt", "GarageCars", "GarageArea")
+blt.rpart <- rpart(
+  as.factor(GarageYrBlt) ~ .,
+  data = test[!is.na(test$GarageYrBlt), col.pred],
+  method = "class",
+  na.action = na.omit
+  )
+test$GarageYrBlt[is.na(test$GarageYrBlt)] <- as.numeric(as.character(predict(blt.rpart, test[is.na(test$GarageYrBlt),col.pred], type = "class")))
+
+# GarageQual: mode
+test$GarageQual[is.na(test$GarageQual) ] <- "TA"
+
+# GarageCond: mode
+test$GarageCond[is.na(test$GarageCond) ] <- "TA"
+
+# GarageFinish: unfinished
+test$GarageFinish[is.na(test$GarageFinish)] <- "Unf"
+
+CM <- sort(apply(test,2,cMiss),decreasing=T);
+barplot(CM[CM != 0], las = 2, cex.names = 0.6, ylab = "Count", ylim = c(0, 250), horiz = F,  col = "#AFC0CB", main =  paste(toString(sum(CM != 0)), "variables with missing values in dataset"))
+```
+
+
+Let's handle LotFrontage
+```{r}
+sort(colSums(sapply(test, is.na)), decreasing = T)
+table(train$LotFrontage, useNA = "ifany")
+
+# Likely predictors
+col.pred <- c("MSSubClass", "MSZoning", "LotFrontage", "LotArea", "Street", "Alley", "LotShape", "LandContour", "LotConfig", "LandSlope", "BldgType", "HouseStyle", "YrSold", "SaleType", "SaleCondition")
+
+# Predict LotFrontage
+frntage.rpart <- rpart(
+  LotFrontage ~ .,
+  data = train[!is.na(train$LotFrontage), col.pred],
+  method = "anova",
+  na.action = na.omit
+  )
+
+# Let us plot the existing and imputed values and check if imputed values follow the same patten
+train.frontage <-
+  as.data.frame(rbind(cbind(rep(
+  "Existing", nrow(train[!is.na(train$LotFrontage), ])
+  ), train[!is.na(train$LotFrontage), "LotFrontage"]),
+  cbind(rep(
+  "Imputed", nrow(train[is.na(train$LotFrontage), ])
+  ),
+  ceiling(
+  predict(frntage.rpart, train[is.na(train$LotFrontage), col.pred])
+  ))))
+
+
+ggplot(train.frontage, aes (x = as.numeric(as.character(V2)), colour = V1)) +
+  geom_density() +
+  xlab("Lot Frontage") +
+  theme(legend.title = element_blank())
+
+train$LotFrontage[is.na(train$LotFrontage)] <- ceiling(predict(frntage.rpart, train[is.na(train$LotFrontage),col.pred]))
+
+sort(colSums(sapply(train, is.na)), decreasing = T)
+```
+
+```{r}
+# Likely predictors
+col.pred <- c("MSSubClass", "MSZoning", "LotFrontage", "LotArea", "Street", "Alley", "LotShape", "LandContour", "LotConfig", "LandSlope", "BldgType", "HouseStyle", "YrSold", "SaleType", "SaleCondition")
+
+# Predict LotFrontage
+frntage.rpart <- rpart(
+  LotFrontage ~ .,
+  data = test[!is.na(test$LotFrontage), col.pred],
+  method = "anova",
+  na.action = na.omit
+  )
+
+# Let us plot the existing and imputed values and check if imputed values follow the same patten
+# test.frontage <-
+#   as.data.frame(rbind(cbind(rep(
+#   "Existing", nrow(test[!is.na(test$LotFrontage), ])
+#   ), test[!is.na(test$LotFrontage), "LotFrontage"]),
+#   cbind(rep(
+#   "Imputed", nrow(test[is.na(test$LotFrontage), ])
+#   ),
+#   ceiling(
+#   predict(frntage.rpart, test[is.na(test$LotFrontage), col.pred])
+#   ))))
+# 
+# 
+# ggplot(test.frontage, aes (x = as.numeric(as.character(V2)), colour = V1)) +
+#   geom_density() +
+#   xlab("Lot Frontage") +
+#   theme(legend.title = element_blank())
+# 
+# test$LotFrontage[is.na(test$LotFrontage)] <- ceiling(predict(frntage.rpart, test[is.na(test$LotFrontage),col.pred]))
+
+sort(colSums(sapply(test, is.na)), decreasing = T)
+```
+
+Lasso
+```{r}
+# sort(colSums(sapply(train, is.na)), decreasing = T)
+# train1 <- train %>%
+#   select_if(is.numeric)
+# test1 <- test %>%
+#   select_if(is.numeric)
+# 
+# train1$SalePrice <- log(train1$SalePrice)
+# test1$SalePrice <- log(test1$SalePrice)
+# 
+# test1 <- filter(test1, !is.na(SalePrice))
+# 
+# 
+# cv_lasso = cv.glmnet(as.matrix(select(train1,-SalePrice)), train1$SalePrice)
+# 
+# pred <- predict(cv_lasso, newx = as.matrix(select(test1, -SalePrice)), s = "lambda.min")
+# h<-head(test1)
+# pred <- as.data.frame(pred)
+# pred <- setNames(pred, "pred")
+# prednona <- filter(pred, !is.na(pred))
+# rm <- data.frame(test1$SalePrice)
+# rm$pred <- prednona$pred
+# rmse(rm$test1.SalePrice, rm$pred)
+```
+
+Histogram of SalePrice and log(SalePrice)
+```{r}
+# ggplot(train, aes(x = SalePrice, fill = ..count..)) +
+#   geom_histogram(binwidth = 5000) +
+#   ggtitle("Figure 1 Histogram of SalePrice") +
+#   ylab("Count of houses") +
+#   xlab("Housing price") +
+#   theme(plot.title = element_text(hjust = 0.5))
+# 
+# train$lSalePrice = log(train$SalePrice + 1)
+# 
+# ggplot(train, aes(x = lSalePrice, fill = ..count..)) +
+#   geom_histogram(binwidth = 0.05) +
+#   ggtitle("Figure 2 Histogram of log SalePrice") +
+#   ylab("Count of houses") +
+#   xlab("Housing Price") +
+#   theme(plot.title = element_text(hjust = 0.5))
+# 
+# # SalePrice vs OverallQuality
+# ggplot(train, aes(x = SalePrice,fill = as.factor(OverallQual))) +
+#   geom_histogram(position = "stack", binwidth = 10000) +
+#   ggtitle("Figure 6 Histogram of SalePrice") +
+#   ylab("Count") +
+#   xlab("Housing Price") +
+#   scale_fill_discrete(name="OverallQual")+
+#   theme(plot.title = element_text(hjust = 0.5))
+```
+
+Factor to Numeric
+```{r}
+# convert factor to numeric
+# train$ExterQual2 <- as.numeric(factor(train$ExterQual,
+#                                   levels = c("Ex", "Fa","Gd", "TA"),
+#                                   labels = c(5,2,4,3) ,ordered = TRUE))
+# train$ExterCond2 <- as.numeric(factor(train$ExterCond,
+#                                   levels = c("Ex", "Fa","Gd", "TA","Po"),
+#                                   labels = c(5,2,4,3,1) ,ordered = TRUE))
+# train$BsmtQual2 <- as.numeric(factor(train$BsmtQual,
+#                                   levels = c("Ex", "Fa","Gd", "TA"),
+#                                   labels = c(5,2,4,3) ,ordered = TRUE))
+# train$BsmtCond2 <- as.numeric(factor(train$BsmtCond,
+#                                  levels = c("Fa", "Gd","Po", "TA"),
+#                                  labels = c(2,4,1,3) ,ordered = TRUE))
+# train$HeatingQC2 <- as.numeric(factor(train$HeatingQC,
+#                                   levels = c("Ex", "Fa","Gd", "TA","Po"),
+#                                   labels = c(5,2,4,3,1) ,ordered = TRUE))
+# train$CentralAir2 <- as.numeric(factor(train$CentralAir,
+#                                   levels = c("N", "Y"),
+#                                   labels = c(0,1) ,ordered = TRUE))
+# 
+# 
+# test$ExterQual2 <- as.numeric(factor(test$ExterQual,
+#                                   levels = c("Ex", "Fa","Gd", "TA"),
+#                                   labels = c(5,2,4,3) ,ordered = TRUE))
+# test$ExterCond2 <- as.numeric(factor(test$ExterCond,
+#                                   levels = c("Ex", "Fa","Gd", "TA","Po"),
+#                                   labels = c(5,2,4,3,1) ,ordered = TRUE))
+# test$BsmtQual2 <- as.numeric(factor(test$BsmtQual,
+#                                   levels = c("Ex", "Fa","Gd", "TA"),
+#                                   labels = c(5,2,4,3) ,ordered = TRUE))
+# test$BsmtCond2 <- as.numeric(factor(test$BsmtCond,
+#                                  levels = c("Fa", "Gd","Po", "TA"),
+#                                  labels = c(2,4,1,3) ,ordered = TRUE))
+# test$HeatingQC2 <- as.numeric(factor(test$HeatingQC,
+#                                   levels = c("Ex", "Fa","Gd", "TA","Po"),
+#                                   labels = c(5,2,4,3,1) ,ordered = TRUE))
+# test$CentralAir2 <- as.numeric(factor(test$CentralAir,
+#                                   levels = c("N", "Y"),
+#                                   labels = c(0,1) ,ordered = TRUE))
+```
+
+PCA:
+```{r}
+sort(colSums(sapply(train, is.na)), decreasing = T)
+train1 <- train %>%
+  select_if(is.numeric)
+test1 <- test %>%
+  select_if(is.numeric)
+pcatrain <- train1
+
+
+pcatrain <- train1
+
+sort(colSums(sapply(test1, is.na)), decreasing = T)
+
+
+train1$SalePrice <- log(train1$SalePrice +1)
+test1$SalePrice <- log(test1$SalePrice +1)
+
+
+train1$SalePrice <- log(train1$SalePrice)
+```
+
+Lasso:
+```{r}
+# test1$SalePrice <- log(test1$SalePrice)
+
+# test1 <- filter(test1, !is.na(SalePrice))
+
+# cv_lasso = cv.glmnet(as.matrix(select(train1, -SalePrice)), train1$SalePrice)
+# pred <- predict(cv_lasso, newx = as.matrix(test1), s = "lambda.min")
+
+# rm <- data.frame(test1$SalePrice)
+# rm
+# rm$pred <- data.frame(pred)
+# rmse(rm$test1.SalePrice, rm$pred)
+
+# df <- data.frame(test1$Id, exp(pred))
+# df
+# names(df) <-  c("Id", "SalePrice")
+# df
+# write.csv(df, "submission.csv", row.names = FALSE)
+```
+
+
+GBM:
+```{r}
+#set.seed(222)
+registerDoMC(16)
+CARET.TRAIN.CTRL <-trainControl(method="repeatedcv",number=5,repeats=5,verboseIter=FALSE,allowParallel=TRUE)
+gbmFit <- train(SalePrice ~ ., method = "gbm", metric = "RMSE", maximize = FALSE, 
+    trControl = CARET.TRAIN.CTRL, tuneGrid = expand.grid(n.trees = (2:10) * 
+        50, interaction.depth = c(3:5), shrinkage = c(0.05), n.minobsinnode = c(10)), 
+    data = train1, verbose = FALSE)
+
+
+preds1 <- as.data.frame(predict(gbmFit, newdata = test1))
+rmse(test1$SalePrice, preds1)
+preds1
+test1$SalePrice
+```
+
+
+PCA:
+```{r}
+sum(is.na(pcatrain))
+
+pcat <- select(pcatrain, -BsmtQual2, -BsmtCond2)
+
+
+sort(colSums(sapply(pcat, is.infinite)), decreasing = T)
+
+
+prin <- prcomp(pcat, scale. = T)
+
+names(prin)
+
+biplot(prin,scale=0)
+```
+
+
+XGBoost
+```{r}
+# pcat <- select(pcatrain, -BsmtQual2, -BsmtCond2)
+# pcatrain$bsm
+# pcat <- select_if(pcatrain, !is.na)
+# sort(colSums(sapply(pcat, is.infinite)), decreasing = T)
+
+xgbFit = xgboost(data = as.matrix(select(train1, -SalePrice)), nfold = 5, label = as.matrix(train1$SalePrice), 
+    nrounds = 2200, verbose = FALSE, objective = "reg:linear", eval_metric = "rmse", 
+    nthread = 8, eta = 0.01, gamma = 0.0468, max_depth = 6, min_child_weight = 1.7817, 
+    subsample = 0.5213, colsample_bytree = 0.4603)
+## print(xgbFit)
+
+CARET.TRAIN.CTRL <-trainControl(method="repeatedcv",number=5,repeats=5,verboseIter=FALSE,allowParallel=TRUE)
+registerDoMC(16)
+gbmFit <- train(SalePrice ~ ., method = "gbm", metric = "RMSE", maximize = FALSE, 
+    trControl = CARET.TRAIN.CTRL, tuneGrid = expand.grid(n.trees = (2:10) * 
+        50, interaction.depth = c(3:5), shrinkage = c(0.05), n.minobsinnode = c(10)), 
+    data = train1, verbose = FALSE)
+
+## print(gbmFit)
+
+## Predictions
+preds3 <- exp(predict(gbmFit, newdata = test1))
+
+## Predictions
+preds2 <- exp(predict(xgbFit, newdata = as.matrix(test1)))
+preds2
+df <- data.frame(test1$Id, preds2, preds3)
+df
+names(df) <-  c("Id", "SalePrice - XGBOOST")
+df
+df <- data.frapreds3
+df
+# write.csv(df, "submission.csv", row.names = FALSE)
+```
+
+Nanana:
+```{r}
+#train1 <- select(train, -Id)
+# train1<-train
+# library(glmnet)
+# library(Metrics)
+# set.seed(123)
+# mattt<-as.matrix(train1[,-80])
+# head(train1[,80])
+# ?cv.glmnet
+# na <- filter_all(train1,any_vars(is.na(.)))
+# nona <- filter_all(train1,all_vars(!is.na(.)))
+# nona <- filter_all(nona,all_vars(!is.nan(.)))
+# nona <- filter_all(nona, all_vars(!is.infinite(.)))
+# nonana <- filter_all(nona,any_vars(is.infinite(.)))
+# 
+# nona <- mutate_all(nona, as.factor)
+# nona <- mutate_all(nona,as.numeric)
+# 
+# ?filter
+# cv_lasso = cv.glmnet(as.matrix(nona[, -80]), nona[, 80])
+# 
+# #test1 <- select(test , -Id)
+# test1 <-test
+# 
+# nonat <- filter_all(test1,all_vars(!is.na(.)))
+# nonat <- filter_all(nonat,all_vars(!is.nan(.)))
+# nonat <- filter_all(nonat, all_vars(!is.infinite(.)))
+# 
+# nonat <- mutate_all(nonat, as.factor)
+# nonat <- mutate_all(nonat,as.numeric)
+# 
+# preds <- predict(cv_lasso, newx = as.matrix(nonat[, -80]), s = "lambda.min")
+# rmse(nonat$SalePrice, preds)
+# 
+# aa <- head(train1)
+# aa[,80]
+# 
+# head(nona)
+```
+
+
+
+
